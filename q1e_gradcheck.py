@@ -23,7 +23,6 @@ def gradcheck_naive(f, x):
     it = np.nditer(x, flags=['multi_index'], op_flags=['readwrite'])
     while not it.finished:
         ix = it.multi_index
-
         # Try modifying x[ix] with h defined above to compute numerical
         # gradients (numgrad).
 
@@ -37,7 +36,15 @@ def gradcheck_naive(f, x):
         # to test cost functions with built in randomness later.
 
         ### YOUR CODE HERE:
-        raise NotImplementedError
+        x[ix] += h
+        random.setstate(rndstate)
+        new_f1 = f(x)[0]
+
+        x[ix] -= 2*h
+        random.setstate(rndstate)
+        new_f2 = f(x)[0]
+
+        numgrad = (new_f1 - new_f2) / (2 * h)
         ### END YOUR CODE
 
         # Compare gradients
@@ -76,7 +83,7 @@ def your_sanity_checks():
     """
     print "Running your sanity checks..."
     ### YOUR CODE HERE
-    raise NotImplementedError
+   
     ### END YOUR CODE
 
 

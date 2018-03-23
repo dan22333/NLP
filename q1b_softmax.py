@@ -29,7 +29,6 @@ def softmax(x):
     orig_shape = x.shape
 
     if len(x.shape) > 1:
-		x = x
         # Matrix
         ### YOUR CODE HERE
         numerator = np.apply_along_axis(lambda x: np.exp(x - np.max(x)), 1,x)

@@ -83,7 +83,8 @@ def your_sanity_checks():
     """
     print "Running your sanity checks..."
     ### YOUR CODE HERE
-   
+    quad = lambda x: (np.sum(x ** 2 + 3 * x), x * 2 + 3)
+    gradcheck_naive(quad, np.random.randn(11,14))   # 2-D test
     ### END YOUR CODE
 
 

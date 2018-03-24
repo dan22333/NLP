@@ -72,7 +72,21 @@ def test_sigmoid():
     """
     print "Running your tests..."
     ### YOUR CODE HERE
-    
+    x = np.array([[0, 0.5],[-3, 3],[0,-0.5]])
+    f = sigmoid(x)
+    g = sigmoid_grad(f)
+    print f
+    f_ans = np.array([
+        [0.5, 0.622],
+        [0.047425, 0.9525],
+        [0.5,0.3775]])
+    assert np.allclose(f, f_ans, rtol=1e-05, atol=1e-03)
+    print g
+    g_ans = np.array([
+        [0.25, 0.235],
+        [0.04517, 0.0452],
+        [0.25, 0.23499]])
+    assert np.allclose(g, g_ans, rtol=1e-05, atol=1e-04)
     ### END YOUR CODE
 
 

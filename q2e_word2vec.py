@@ -15,6 +15,7 @@ def normalizeRows(x):
     """
 
     ### YOUR CODE HERE
+    x = np.apply_along_axis(lambda x: np.sqrt((x ** 2) / np.sum(x ** 2)), 1, x)
     ### END YOUR CODE
 
     return x
@@ -202,4 +203,4 @@ def test_word2vec():
 
 if __name__ == "__main__":
     test_normalize_rows()
-    test_word2vec()
+    # test_word2vec()

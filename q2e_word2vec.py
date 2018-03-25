@@ -15,7 +15,7 @@ def normalizeRows(x):
     """
 
     ### YOUR CODE HERE
-    x = np.apply_along_axis(lambda x: np.sqrt((x ** 2) / np.sum(x ** 2)), 1, x)
+    x = np.apply_along_axis(lambda x: x/np.linalg.norm(x), 1, x)
     ### END YOUR CODE
 
     return x

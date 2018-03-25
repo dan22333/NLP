@@ -14,10 +14,25 @@ def knn(vector, matrix, k=10):
     Return:
     nearest_idx -- A numpy vector consists of the rows indices of the k-nearest neighbors in the matrix
     """
-
-    nearest_idx = []
-
     ### YOUR CODE
+    """ Empty matrix """
+    if len(matrix.shape)==0:
+        return np.array([])
+
+    """ More than one row checking if we have at least 10 otherwise seeting to new value"""
+    if len(matrix.shape)>1:
+        k = np.minimum(k,matrix.shape[1])
+    else:
+        return np.array([0])
+
+    dotMatrix  = np.dot(matrix,vector)
+    normalMatrix  =  np.apply_along_axis(lambda x: np.linalg.norm(x), 1,matrix)
+    normalVector = np.linalg.norm(vector)
+    normalsProduct = normalVector*normalMatrix
+    cosValues = dotMatrix/normalsProduct
+    indicesflipped =  np.argsort(cosValues)
+    indices = np.fliplr([indicesflipped])[0]
+    nearest_idx  = indices[0:k]
     ### END YOUR CODE
     return nearest_idx
 
@@ -32,6 +47,7 @@ def test_knn():
     ### YOUR CODE HERE
 
     indices = knn(np.array([0.2,0.5]), np.array([[0,0.5],[0.1,0.1],[0,0.5],[2,2],[4,4],[3,3]]), k=2)
+    print indices
     assert 0 in indices and 2 in indices and len(indices) == 2
 
     ### END YOUR CODE

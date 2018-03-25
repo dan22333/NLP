@@ -19,18 +19,31 @@ def knn(vector, matrix, k=10):
     if len(matrix.shape)==0:
         return np.array([])
 
-    """ More than one row checking if we have at least 10 otherwise seeting to new value"""
+    """ More than one row checking if we have at least 10 otherwise setting to new value"""
     if len(matrix.shape)>1:
         k = np.minimum(k,matrix.shape[1])
     else:
         return np.array([0])
 
+    # cos similarity between 2 vectors
+    # sigma (Ai dot Bi) / (norm(A) * norm(B))
+    # norm(A) = sqrt(sigma(Ai) ** 2)
+
+    # enumerator V dot matrix(i) 
     dotMatrix  = np.dot(matrix,vector)
+    # denominator norm(matrix(i))
     normalMatrix  =  np.apply_along_axis(lambda x: np.linalg.norm(x), 1,matrix)
+    print normalMatrix
     normalVector = np.linalg.norm(vector)
+    # denom norm(V) * norm(matrix(i))
     normalsProduct = normalVector*normalMatrix
+    print normalsProduct
+    # V dot matrix(i) / norm(V) * norm(matrix(i))
     cosValues = dotMatrix/normalsProduct
+    # increasing order: return the indices
     indicesflipped =  np.argsort(cosValues)
+    # flip in the left/right direction
+    # remove one dimension
     indices = np.fliplr([indicesflipped])[0]
     nearest_idx  = indices[0:k]
     ### END YOUR CODE

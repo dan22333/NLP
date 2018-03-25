@@ -108,6 +108,7 @@ def sgd(f, x0, step, iterations, postprocessing=None, useSaved=False,
 def sanity_check():
     quad = lambda x: (np.sum(x ** 2), x * 2)
 
+    # Returned value expected to be 0
     print "Running sanity checks..."
     t1 = sgd(quad, 0.5, 0.01, 1000, PRINT_EVERY=100)
     print "test 1 result:", t1
@@ -133,7 +134,13 @@ def your_sanity_checks():
     """
     print "Running your sanity checks..."
     ### YOUR CODE HERE
-    raise NotImplementedError
+    quad = lambda x: (np.sum((x - 3) ** 2), x * 2 - 6)
+    # Return the theta - the value which minimizes 
+    # the cost function
+    # expected returned value is 3
+    t1 = sgd(quad, 0.5, 0.01, 1000, PRINT_EVERY=100)
+    print "test 1 result:", t1
+    assert abs(t1) <= 3 + 1e-6
     ### END YOUR CODE
 
 

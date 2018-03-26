@@ -33,11 +33,9 @@ def knn(vector, matrix, k=10):
     dotMatrix  = np.dot(matrix,vector)
     # denominator norm(matrix(i))
     normalMatrix  =  np.apply_along_axis(lambda x: np.linalg.norm(x), 1,matrix)
-    print normalMatrix
     normalVector = np.linalg.norm(vector)
     # denom norm(V) * norm(matrix(i))
     normalsProduct = normalVector*normalMatrix
-    print normalsProduct
     # V dot matrix(i) / norm(V) * norm(matrix(i))
     cosValues = dotMatrix/normalsProduct
     # increasing order: return the indices

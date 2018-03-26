@@ -126,7 +126,7 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset,
 
 
 def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
-             dataset, word2vecCostAndGradient=softmaxCostAndGradient):
+             dataset, word2vecCostAndGradient=negSamplingCostAndGradient):
     """ Skip-gram model in word2vec
 
     Implement the skip-gram model in this function.
@@ -161,7 +161,7 @@ def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
         outer_idx = tokens[i]
         temp_cost, temp_grad_pred, temp_grad = word2vecCostAndGradient(vc, outer_idx, outputVectors, dataset)
         cost += temp_cost
-        gradIn[cword_idx] += temp_grad_pred
+        gradIn[center_word] += temp_grad_pred
         gradOut += temp_grad
     ### END YOUR CODE
     

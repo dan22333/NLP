@@ -66,12 +66,11 @@ def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
     #  Gradients
     prob[target] -= 1.0
 
-    grad = np.outer(predicted,prob)
+    grad = np.outer(prob,predicted)
     gradPred = np.dot(outputVectors.T, prob)
     ### END YOUR CODE
-
+    
     return cost, gradPred, grad
-
 
 def getNegativeSamples(target, dataset, K):
     """ Samples K indexes which are not the target """
@@ -234,4 +233,4 @@ def test_word2vec():
 
 if __name__ == "__main__":
     test_normalize_rows()
-    # test_word2vec()
+    test_word2vec()

@@ -21,7 +21,7 @@ def knn(vector, matrix, k=10):
 
     """ More than one row checking if we have at least 10 otherwise seeting to new value"""
     if len(matrix.shape)>1:
-        k = np.minimum(k,matrix.shape[1])
+        k = np.minimum(k,matrix.shape[0])
     else:
         return np.array([0])
 

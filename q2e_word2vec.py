@@ -58,15 +58,14 @@ def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
     """
     ### YOUR CODE HERE
     w = np.dot(outputVectors, predicted)
-    prob = softmax(w)
+    prob = softmax(w) # y_pred (V size)
 
     #  Cost:
     cost = -np.log(prob[target])
 
-    #  Gradients
     prob[target] -= 1.0
 
-    grad = np.outer(prob,predicted)
+    grad = np.outer(prob,predicted) # V * d
     gradPred = np.dot(outputVectors.T, prob)
     ### END YOUR CODE
     
@@ -104,9 +103,10 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset,
     indices.extend(getNegativeSamples(target, dataset, K))
 
     ### YOUR CODE HERE
-    grad = np.zeros(outputVectors.shape)
-    gradPred = np.zeros(predicted.shape)
+    grad = np.zeros(outputVectors.shape) # V * d
+    gradPred = np.zeros(predicted.shape) # d size
     cost = 0
+    # sigmoid(Uo dot Vc)
     sig_outer= sigmoid(np.dot(outputVectors[target], predicted))
 
     cost -= np.log(sig_outer)
@@ -115,6 +115,7 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset,
 
     for k in xrange(K):
         sample = indices[k]
+        # sigmoid(-Uk dot Vc)
         sig_val = sigmoid(-1.0*np.dot(outputVectors[sample], predicted))
         cost -= np.log(sig_val)
         grad[sample] -= (sig_val-1.0)*predicted 
@@ -232,5 +233,5 @@ def test_word2vec():
 
 
 if __name__ == "__main__":
-    test_normalize_rows()
+    # test_normalize_rows()
     test_word2vec()

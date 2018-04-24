@@ -38,10 +38,9 @@ def train_ngrams(dataset):
         for ind in s: # iterate over words
             tri = tri + (ind,)
             if start_ind == ind:
-                pair = (ind,)
                 continue
 
-            pair = pair + (ind,)
+            pair = tri[:2]
             if len(tri) == 3:
                 if trigram_counts.get(tri) == None:
                     trigram_counts[tri] = 1
@@ -54,7 +53,6 @@ def train_ngrams(dataset):
                 else:
                     bigram_counts[pair] += 1
                 pair = pair[1:]
-            if ind != end_ind:
                 if unigram_counts.get(ind) == None:
                     unigram_counts[ind] = 1
                 else:
@@ -124,6 +122,8 @@ def grid_search(eval_dataset, trigram_counts, bigram_counts, unigram_counts,
         while lambda2 <= (1.0 - lambda1):
             perplexity = evaluate_ngrams(eval_dataset, trigram_counts, bigram_counts, 
                 unigram_counts, train_token_count, lambda1, lambda2)
+            print("perplexity: " + str(perplexity) + " , lambda1: " 
+                + str(lambda1) + " ', lambda2: " + str(lambda2))
             if best_perplexity < 0 or best_perplexity > perplexity:
                 best_perplexity = perplexity
                 best_lambda1 = lambda1

@@ -11,7 +11,7 @@ vocab = pd.read_table("data/lm/vocab.ptb.txt", header=None, sep="\s+",
                      index_col=0, names=['count', 'freq'], )
 
 # Choose how many top words to keep
-vocabsize = 20000
+vocabsize = 2000
 num_to_word = dict(enumerate(vocab.index[:vocabsize]))
 word_to_num = du.invert_dict(num_to_word)
 
@@ -30,14 +30,12 @@ def train_ngrams(dataset):
     bigram_counts = dict()
     unigram_counts = dict()
     token_count = 0
-    ### YOUR CODE HERE
     start_ind = word_to_num['<s>']
     end_ind = word_to_num['</s>']
     for s in dataset: # iterate over sentences
         pair = ()
         tri = ()
-        for ind in s: # iterate over words indices
-            
+        for ind in s: # iterate over words
             tri = tri + (ind,)
             if start_ind == ind:
                 pair = (ind,)
@@ -62,7 +60,7 @@ def train_ngrams(dataset):
                 else:
                     unigram_counts[ind] += 1
                 token_count += 1
-    ### END YOUR CODE
+
     return trigram_counts, bigram_counts, unigram_counts, token_count
 
 def dev_trigram():
@@ -70,44 +68,46 @@ def dev_trigram():
 
     return trigram_counts
 
-def evaluate_ngrams(eval_dataset, trigram_counts, bigram_counts, unigram_counts, train_token_count, lambda1, lambda2):
+def evaluate_ngrams(eval_dataset, trigram_counts, bigram_counts, unigram_counts, 
+    train_token_count, lambda1, lambda2):
     """
     Goes over an evaluation dataset and computes the perplexity for it with
     the current counts and a linear interpolation
     """
     perplexity = 0
-     ### YOUR CODE HERE
+    word_counts = 0
     l = 0 # log-likelihood
     lambda3 = 1 - lambda1 - lambda2 
     start_ind = word_to_num['<s>']
     end_ind = word_to_num['</s>']
     for s in eval_dataset: # sentences iterations
         tri = ()
-                
+
         for ind in s: # words indices iterations
             tri = tri + (ind,)
             if start_ind == ind:
                 continue
 
-            if len(tri) == 3:
-                p = 0
-                if bigram_counts.get(tri) != None and bigram_counts.get(tri[:2]) != None:
-                    p += trigram_counts[tri] / (1.0 * bigram[tri[:2]]) * lambda1
-                if bigram_counts.get(tri[1:]) != None and unigram_counts.get(ind) != None:
-                    p += bigram_counts[tri[1:]] / (1.0 * unigram_counts[ind]) * lambda2
-                if unigram_counts.get(ind) != None:
-                    p += unigram_counts[ind] / (1.0 * train_token_count) * lambda3
+            p = 0.0 # initialize probability
+            if bigram_counts.get(tri) != None and bigram_counts.get(tri[:2]) != None:
+                p += trigram_counts[tri] / (1.0 * bigram[tri[:2]]) * lambda1
+            if bigram_counts.get(tri[1:]) != None and unigram_counts.get(ind) != None:
+                p += bigram_counts[tri[1:]] / (1.0 * unigram_counts[ind]) * lambda2
+            if unigram_counts.get(ind) != None:
+                p += unigram_counts[ind] / (1.0 * train_token_count) * lambda3
 
-                if p > 0:
-                    l += math.log(p, 2)
-                else:
-                    print "Error: zero probablity"
-    l /= len(eval_dataset)
+            if p > 0:
+                l += np.log2([p], dtype=np.float)[0]
+
+            tri = tri[1:]
+            word_counts += 1
+
+    l = l / word_counts
     perplexity = 2 ** (-l)
-    ### END YOUR CODE
     return perplexity
 
-def grid_search(eval_dataset, trigram_counts, bigram_counts, unigram_counts, train_token_count):
+def grid_search(eval_dataset, trigram_counts, bigram_counts, unigram_counts, 
+    train_token_count):
     """
     Running grid search to tune the linear interpolation coefficients. 
     Find the perplexity for every setting of the coefficients and the setting 
@@ -122,7 +122,8 @@ def grid_search(eval_dataset, trigram_counts, bigram_counts, unigram_counts, tra
     while lambda1 <= 1.0:
         lambda2 = 0
         while lambda2 <= (1.0 - lambda1):
-            perplexity = evaluate_ngrams(eval_dataset, trigram_counts, bigram_counts, unigram_counts, token_count, lambda1, lambda2)
+            perplexity = evaluate_ngrams(eval_dataset, trigram_counts, bigram_counts, 
+                unigram_counts, train_token_count, lambda1, lambda2)
             if best_perplexity < 0 or best_perplexity > perplexity:
                 best_perplexity = perplexity
                 best_lambda1 = lambda1
@@ -142,10 +143,13 @@ def test_ngram():
     print "#bigrams: " + str(len(bigram_counts))
     print "#unigrams: " + str(len(unigram_counts))
     print "#tokens: " + str(token_count)
-    perplexity = evaluate_ngrams(S_dev, trigram_counts, bigram_counts, unigram_counts, token_count, 0.5, 0.4)
-    print "#perplexity: " + str(perplexity)
-    ### YOUR CODE HERE
-    ### END YOUR CODE
+    perplexity = evaluate_ngrams(S_dev, trigram_counts, bigram_counts, unigram_counts, 
+        token_count, 0.5, 0.4)
+    print "#perplexity: " + str(perplexity) + " , lambda1: 0.5, lambda2: 0.4"
+    perplexity, lambda1, lambda2 = grid_search(S_dev, trigram_counts, 
+        bigram_counts, unigram_counts, token_count)
+    print("#perplexity: " + str(perplexity) + " , lambda1: " + str(lambda1) + 
+        " , lambda2: " + str(lambda2))
 
 if __name__ == "__main__":
     test_ngram()

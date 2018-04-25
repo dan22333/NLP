@@ -73,7 +73,7 @@ def dev_trigram():
 	return trigram_counts
 
 def evaluate_ngrams(eval_dataset, trigram_counts, bigram_counts, unigram_counts, 
-	train_token_count, lambda1, lambda2, step=0.1):
+	train_token_count, lambda1, lambda2, step=0.05):
 	"""
     	Goes over an evaluation dataset and computes the perplexity for it with
     	the current counts and a linear interpolation
@@ -125,7 +125,7 @@ def grid_search(eval_dataset, trigram_counts, bigram_counts, unigram_counts,
 	best_lambda2 = 0
 
 	lambda1 = 0
-	step = 0.1
+	step = 0.05
 	while lambda1 <= 1.0:
 		lambda2 = 0
 		while lambda2 <= (1.0 - lambda1):

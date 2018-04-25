@@ -80,7 +80,6 @@ def evaluate_ngrams(eval_dataset, trigram_counts, bigram_counts, unigram_counts,
 	"""
 	perplexity = 0
 	word_counts = 0
-	count_zero_prob = 0
 	l = 0 # log-likelihood
 	lambda3 = 1.0 - lambda1 - lambda2 
 	lambda3 = 0.0 if lambda3 < step / 2.0 else lambda3
@@ -105,14 +104,13 @@ def evaluate_ngrams(eval_dataset, trigram_counts, bigram_counts, unigram_counts,
 			if p > 0:
 				l += np.log2([p], dtype=np.float)[0]
 			else:
-				count_zero_prob += 1
+				l += -np.inf
 			tri = tri[1:] # shift right
 			word_counts += 1
 
 	l /= (1.0 * word_counts)
 	perplexity = np.exp2([-l], dtype=np.float)[0]
 
-	print("#zero_prob = " + str(count_zero_prob))
 	return perplexity
 
 def grid_search(eval_dataset, trigram_counts, bigram_counts, unigram_counts, 
@@ -159,8 +157,8 @@ def test_ngram():
 	print "#perplexity: " + str(perplexity) + " , lambda1: 0.5 , lambda2: 0.4"
 	perplexity, lambda1, lambda2 = grid_search(S_dev, trigram_counts, 
 		bigram_counts, unigram_counts, token_count)
-	print("#perplexity: " + str(perplexity) + " , lambda1: " + str(lambda1) + 
-		" , lambda2: " + str(lambda2))
+	print("#best perplexity: " + str(perplexity) + " , lambda1: " + 
+		str(lambda1) + " , lambda2: " + str(lambda2))
 
 if __name__ == "__main__":
 	test_ngram()

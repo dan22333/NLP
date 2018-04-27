@@ -70,13 +70,19 @@ def int_to_one_hot(number, dim):
     return res
 
 def lm_wrapper(in_word_index, out_word_index, num_to_word_embedding, dimensions, params):
-
+    input_dim = dimensions[0]
     data = np.zeros([BATCH_SIZE, input_dim])
     labels = np.zeros([BATCH_SIZE, output_dim])
 
     # Construct the data batch and run you backpropogation implementation
     ### YOUR CODE HERE
-    raise NotImplementedError
+    data_size = len(in_word_index)
+    random_sample_indices = np.random.choice(data_size,BATCH_SIZE)
+    random_sample = np.take(in_word_index,random_sample_indices)
+    for i in range(BATCH_SIZE):
+        data[i] = num_to_word_embedding[random_sample[i]]
+        labels[i] = int_to_one_hot(random_sample[i],dimensions[2])
+    cost, grad = forward_backward_prop(data, labels, params, dimensions)
     ### END YOUR CODE
 
     cost /= BATCH_SIZE
@@ -94,7 +100,17 @@ def eval_neural_lm(eval_data_path):
 
     perplexity = 0
     ### YOUR CODE HERE
-    raise NotImplementedError
+    num_to_word_embedding = load_vocab_embeddings()
+    input_dim = 50
+    hidden_dim = 50
+    output_dim = vocabsize
+    dimensions = [input_dim, hidden_dim, output_dim]
+    params = np.random.randn((input_dim + 1) * hidden_dim + (hidden_dim + 1) * output_dim,)
+    power = 0
+    for i in range(len(in_word_index)):
+        power += np.log(forward(num_to_word_embedding[in_word_index[i]], out_word_index[i], params, dimensions))
+    power /= len(in_word_index)
+    perplexity = np.exp2(-1*power)
     ### END YOUR CODE
 
     return perplexity
@@ -108,7 +124,6 @@ if __name__ == "__main__":
     num_to_word = dict(enumerate(vocab.index[:vocabsize]))
     num_to_word_embedding = load_vocab_embeddings()
     word_to_num = du.invert_dict(num_to_word)
-
     # Load the training data
     _, S_train = load_data_as_sentences('data/lm/ptb-train.txt', word_to_num)
     in_word_index, out_word_index = convert_to_lm_dataset(S_train)

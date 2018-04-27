@@ -32,7 +32,7 @@ def forward(data, label, params, dimensions):
     h = sigmoid(z)
     scores = np.dot(h, W2) + b2
     probs = softmax(scores)
-    return probs[label]
+    return probs[0][label]
     ### END YOUR CODE
 
 def forward_backward_prop(data, labels, params, dimensions):

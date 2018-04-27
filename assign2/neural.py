@@ -28,7 +28,11 @@ def forward(data, label, params, dimensions):
 
     # Compute the probability
     ### YOUR CODE HERE: forward propagation
-    raise NotImplementedError
+    z = np.dot(data, W1) + b1
+    h = sigmoid(z)
+    scores = np.dot(h, W2) + b2
+    probs = softmax(scores)
+    return probs[0][label]
     ### END YOUR CODE
 
 def forward_backward_prop(data, labels, params, dimensions):
@@ -59,17 +63,25 @@ def forward_backward_prop(data, labels, params, dimensions):
     b2 = np.reshape(params[ofs:ofs + Dy], (1, Dy))
 
     ### YOUR CODE HERE: forward propagation
-    raise NotImplementedError
+    z = np.dot(data, W1) + b1
+    h = sigmoid(z)
+    scores = np.dot(h, W2) + b2
+    probs = softmax(scores)
+    cost = - np.sum(labels * np.log(probs))
     ### END YOUR CODE
 
     ### YOUR CODE HERE: backward propagation
-    raise NotImplementedError
+    diff = probs - labels
+    gradW2 = np.dot(h.T, diff)
+    gradb2 = np.sum(diff, axis=0, keepdims=True)
+    dh = np.dot(diff, W2.T)
+    dz = sigmoid_grad(h) * dh
+    gradW1 = np.dot(data.T, dz)
+    gradb1 = np.sum(dz, axis=0, keepdims=True)
     ### END YOUR CODE
-
     ### Stack gradients (do not modify)
     grad = np.concatenate((gradW1.flatten(), gradb1.flatten(),
         gradW2.flatten(), gradb2.flatten()))
-
     return cost, grad
 
 
@@ -89,7 +101,6 @@ def sanity_check():
 
     params = np.random.randn((dimensions[0] + 1) * dimensions[1] + (
         dimensions[1] + 1) * dimensions[2], )
-
     gradcheck_naive(lambda params:
         forward_backward_prop(data, labels, params, dimensions), params)
 
@@ -103,7 +114,7 @@ def your_sanity_checks():
     """
     print "Running your sanity checks..."
     ### YOUR CODE HERE
-    raise NotImplementedError
+   # raise NotImplementedError
     ### END YOUR CODE
 
 

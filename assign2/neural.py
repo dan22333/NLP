@@ -71,21 +71,17 @@ def forward_backward_prop(data, labels, params, dimensions):
     ### END YOUR CODE
 
     ### YOUR CODE HERE: backward propagation
-    dscores = probs - labels
-
-    gradW2 = np.dot(h.T, dscores)
-    gradb2 = np.sum(dscores, axis=0, keepdims=True)
-    dh = np.dot(dscores, W2.T)
-
+    diff = probs - labels
+    gradW2 = np.dot(h.T, diff)
+    gradb2 = np.sum(diff, axis=0, keepdims=True)
+    dh = np.dot(diff, W2.T)
     dz = sigmoid_grad(h) * dh
     gradW1 = np.dot(data.T, dz)
     gradb1 = np.sum(dz, axis=0, keepdims=True)
     ### END YOUR CODE
-
     ### Stack gradients (do not modify)
     grad = np.concatenate((gradW1.flatten(), gradb1.flatten(),
         gradW2.flatten(), gradb2.flatten()))
-
     return cost, grad
 
 
@@ -105,7 +101,6 @@ def sanity_check():
 
     params = np.random.randn((dimensions[0] + 1) * dimensions[1] + (
         dimensions[1] + 1) * dimensions[2], )
-
     gradcheck_naive(lambda params:
         forward_backward_prop(data, labels, params, dimensions), params)
 

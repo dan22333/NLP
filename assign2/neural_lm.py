@@ -108,7 +108,6 @@ def eval_neural_lm(eval_data_path):
     power = 0
     for i in range(len(in_word_index)):
         power += np.log2(forward(num_to_word_embedding[in_word_index[i]], out_word_index[i], paramsFinal, dimensions))
-        print forward(num_to_word_embedding[in_word_index[i]], out_word_index[i], paramsFinal, dimensions)
     power /= len(in_word_index)
     perplexity = np.exp2(-1*power)
     ### END YOUR CODE

@@ -117,7 +117,32 @@ def your_sanity_checks():
    # raise NotImplementedError
     ### END YOUR CODE
 
+def next(data, params, dimensions):
+    """
+    runs a forward pass and returns the probability of the correct word for eval.
+    label here is an integer for the index of the label.
+    This function is used for model evaluation.
+    """
+    ### Unpack network parameters (do not modify)
+    ofs = 0
+    Dx, H, Dy = (dimensions[0], dimensions[1], dimensions[2])
 
+    params[ofs:ofs+ Dx * H]
+    W1 = np.reshape(params[ofs:ofs+ Dx * H], (Dx, H))
+    ofs += Dx * H
+    b1 = np.reshape(params[ofs:ofs + H], (1, H))
+    ofs += H
+    W2 = np.reshape(params[ofs:ofs + H * Dy], (H, Dy))
+    ofs += H * Dy
+    b2 = np.reshape(params[ofs:ofs + Dy], (1, Dy))
+
+    # Compute the probability
+    ### YOUR CODE HERE: forward propagation
+    z = np.dot(data, W1) + b1
+    h = sigmoid(z)
+    scores = np.dot(h, W2) + b2
+    probs = softmax(scores)
+    return  np.argmax(probs)
 if __name__ == "__main__":
     sanity_check()
     your_sanity_checks()

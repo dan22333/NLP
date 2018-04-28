@@ -12,8 +12,9 @@ from sgd import *
 
 VOCAB_EMBEDDING_PATH = "data/lm/vocab.embeddings.glove.txt"
 BATCH_SIZE = 50
-NUM_OF_SGD_ITERATIONS = 40000
+NUM_OF_SGD_ITERATIONS = 30000
 LEARNING_RATE = 0.3
+paramsFinal =0
 
 def load_vocab_embeddings(path=VOCAB_EMBEDDING_PATH):
     result = []
@@ -78,10 +79,11 @@ def lm_wrapper(in_word_index, out_word_index, num_to_word_embedding, dimensions,
     ### YOUR CODE HERE
     data_size = len(in_word_index)
     random_sample_indices = np.random.choice(data_size,BATCH_SIZE)
-    random_sample = np.take(in_word_index,random_sample_indices)
+    random_sample_in = np.take(in_word_index,random_sample_indices)
+    random_sample_out = np.take(out_word_index,random_sample_indices)
     for i in range(BATCH_SIZE):
-        data[i] = num_to_word_embedding[random_sample[i]]
-        labels[i] = int_to_one_hot(random_sample[i],dimensions[2])
+        data[i] = num_to_word_embedding[random_sample_in[i]]
+        labels[i] = int_to_one_hot(random_sample_out[i],dimensions[2])
     cost, grad = forward_backward_prop(data, labels, params, dimensions)
     ### END YOUR CODE
 
@@ -105,10 +107,9 @@ def eval_neural_lm(eval_data_path):
     hidden_dim = 50
     output_dim = vocabsize
     dimensions = [input_dim, hidden_dim, output_dim]
-    params = np.random.randn((input_dim + 1) * hidden_dim + (hidden_dim + 1) * output_dim,)
     power = 0
     for i in range(len(in_word_index)):
-        power += np.log(forward(num_to_word_embedding[in_word_index[i]], out_word_index[i], params, dimensions))
+        power += np.log(forward(num_to_word_embedding[in_word_index[i]], out_word_index[i], paramsFinal, dimensions))
     power /= len(in_word_index)
     perplexity = np.exp2(-1*power)
     ### END YOUR CODE
@@ -148,9 +149,9 @@ if __name__ == "__main__":
     print "#train examples: " + str(num_of_examples)
 
     # run SGD
-    params = sgd(
+    paramsFinal = sgd(
             lambda vec:lm_wrapper(in_word_index, out_word_index, num_to_word_embedding, dimensions, vec),
-            params, LEARNING_RATE, NUM_OF_SGD_ITERATIONS, None, True, 1000)
+            params, LEARNING_RATE, NUM_OF_SGD_ITERATIONS, None, True, 100)
 
     print "training took %d seconds" % (time.time() - startTime)
 

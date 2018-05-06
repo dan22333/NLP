@@ -3,18 +3,61 @@ from sklearn.feature_extraction import DictVectorizer
 from sklearn import linear_model
 import time
 from submitters_details import get_details
+import re
 
 
-def extract_features_base(curr_word, next_word, prev_word, prevprev_word, prev_tag, prevprev_tag):
+def extract_features_base_aa(curr_word, next_word, prev_word, prevprev_word, prev_tag, prevprev_tag):
     """
         Receives: a word's local information
         Returns: The word's features.
     """
     features = {}
-    features['word'] = curr_word
     ### YOUR CODE HERE
-    raise NotImplementedError
+    features['word'] = curr_word
+    features['prev_word'] = prev_word
+    features['prevprev_word'] = prevprev_word
+    features['next_word'] = next_word
+    for i in xrange(1, 5):
+        if len(curr_word) > i:
+            features[str.format("pref{}", i)] = curr_word[:i]
+            features[str.format("suff{}", i)] = curr_word[len(curr_word) - i:]
+    features['prevprev_tag'] = prevprev_tag
+    features['bigram'] = prev_tag
+    features['trigram'] = str.format("{}_{}", prevprev_tag, prev_tag)
     ### END YOUR CODE
+    return features
+
+def extract_features_base(curr_word, next_word, prev_word, prevprev_word, prev_tag, prevprev_tag):
+    """
+        Receives: a word's local information
+        Rerutns: The word's features.
+    """
+    features = {}
+    features['word'] = curr_word
+    features['prev_tag'] = prev_tag
+    features['prevprev_tag'] = prevprev_tag
+    features['tag_bigram'] = prevprev_tag + "-" + prev_tag
+    features['prev_wordtag_pairs'] = prev_word + "/" + prev_tag
+    features['prevprev_wordtag_pairs'] = prevprev_word + "/" + prevprev_tag
+    features['next_word'] = next_word
+
+    if curr_word in vocab and vocab[curr_word] >= MIN_FREQ:
+        features['pref1'] = curr_word[0]
+        features['pref2'] = curr_word[0:2]
+        features['pref3'] = curr_word[0:3]
+        features['pref4'] = curr_word[0:4]
+        features['suf1'] = curr_word[-1]
+        features['suf2'] = curr_word[-2:]
+        features['suf3'] = curr_word[-3:]
+        features['suf4'] = curr_word[-4:]
+
+        if re.compile(".*[A-Z]").match(curr_word):
+            features['has_uppercase'] = 1
+        if re.compile(".*\d").match(curr_word):
+            features['has_number'] = 1
+        if re.compile(".*-").match(curr_word):
+            features['has_hyphen'] = 1
+
     return features
 
 def extract_features(sentence, i):
@@ -40,13 +83,13 @@ def create_examples(sents, tag_to_idx_dict):
     examples = []
     labels = []
     num_of_sents = 0
+    count = 0
     for sent in sents:
         num_of_sents += 1
         for i in xrange(len(sent)):
             features = extract_features(sent, i)
             examples.append(features)
             labels.append(tag_to_idx_dict[sent[i][1]])
-
     return examples, labels
 
 
@@ -155,8 +198,11 @@ if __name__ == "__main__":
     dev_examples_vectorized = all_examples_vectorized[num_train_examples:]
     print "Done"
 
+    print all_examples_vectorized.shape
+    print len(vec.get_feature_names())
+
     logreg = linear_model.LogisticRegression(
-        multi_class='multinomial', max_iter=128, solver='lbfgs', C=100000, verbose=1)
+        multi_class='multinomial', max_iter=250, solver='lbfgs', C=100000, verbose=1)
     print "Fitting..."
     start = time.time()
     logreg.fit(train_examples_vectorized, train_labels)

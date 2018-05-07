@@ -4,9 +4,11 @@ from sklearn import linear_model
 import time
 from submitters_details import get_details
 import re
+import numpy as np
+import copy
 
 
-def extract_features_base_aa(curr_word, next_word, prev_word, prevprev_word, prev_tag, prevprev_tag):
+def extract_features_base(curr_word, next_word, prev_word, prevprev_word, prev_tag, prevprev_tag):
     """
         Receives: a word's local information
         Returns: The word's features.
@@ -27,7 +29,7 @@ def extract_features_base_aa(curr_word, next_word, prev_word, prevprev_word, pre
     ### END YOUR CODE
     return features
 
-def extract_features_base(curr_word, next_word, prev_word, prevprev_word, prev_tag, prevprev_tag):
+def extract_features_base_aa(curr_word, next_word, prev_word, prevprev_word, prev_tag, prevprev_tag):
     """
         Receives: a word's local information
         Rerutns: The word's features.
@@ -92,27 +94,96 @@ def create_examples(sents, tag_to_idx_dict):
             labels.append(tag_to_idx_dict[sent[i][1]])
     return examples, labels
 
-
-def memm_greeedy(sent, logreg, vec, index_to_tag_dict):
+def memm_greedy(sent, logreg, vec, index_to_tag_dict):
     """
         Receives: a sentence to tag and the parameters learned by memm
         Returns: predicted tags for the sentence
     """
     predicted_tags = [""] * (len(sent))
-    ### YOUR CODE HERE
-    raise NotImplementedError
-    ### END YOUR CODE
+
+    # clear tags
+    new_sent = [(word, None) for (word, _) in range(len(sent))]
+   
+    for i in xrange(len(sent)):
+        vec_pos = vectorize_features(vec, extract_features(new_sent, i))
+        tag_ind = logreg.predict(vec_pos)[0]
+        tag = index_to_tag_dict[tag_ind]
+        predicted_tags[i] = tag
+        new_sent[i] = tag
+
     return predicted_tags
 
-def memm_viterbi(sent, logreg, vec, index_to_tag_dict):
+
+def memm_viterbi(sent, logreg, vec, index_to_tag_dict, train_labels):
     """
         Receives: a sentence to tag and the parameters learned by memm
         Returns: predicted tags for the sentence
     """
+    tag_to_index_dict = invert_dict(index_to_tag_dict)
+
+    train_labels_dict = { train_labels[i] : 1 for i in range(len(train_labels))}
+
+    print sent
+
     predicted_tags = [""] * (len(sent))
     ### YOUR CODE HERE
-    raise NotImplementedError
+    n_tags = len(index_to_tag_dict)
+    n_words = len(sent)
+    PI = np.zeros((n_tags, n_tags))
+    PI_next = np.zeros((n_tags, n_tags))
+    bp = np.zeros((n_tags, n_tags, n_tags))
+    bp += -1
+
+    PI[tag_to_index_dict['*'], tag_to_index_dict['*']] = 1.0
+
+    # clear tags
+    new_sent = copy.copy([(sent[i][0], None) for i in range(n_words)])
+
+    for k in range(n_words):
+        print str.format("k={}", k)
+        for u in range(n_tags):
+            for v in range(n_tags):
+                PI_next[u,v] = 0.0
+                if v not in train_labels_dict:
+                    continue
+                # print str.format("u={} v={}", index_to_tag_dict[u], index_to_tag_dict[v])
+                for t in range(n_tags):
+                    if PI[t, u] <= 0:
+                        continue
+                    # print str.format("k={} t={}", k, index_to_tag_dict[t])
+                    if k > 1 or k > 0:
+                        new_sent[k - 1] = new_sent[k - 1][0], index_to_tag_dict[u]
+                        if k > 1:
+                            new_sent[k - 2] = new_sent[k - 2][0], index_to_tag_dict[t] 
+                    vec_pos = vectorize_features(vec, extract_features(new_sent, k))
+                    prob = logreg.predict_proba(vec_pos)[0]
+                    res = PI[t,u] * prob[v] # PI(k-1, t, u) * q(v/t,u,w,k)
+                    if res > PI_next[u,v]:
+                        PI_next[u,v] = res
+                        bp[k, u, v] = t
+
+        PI = copy.copy(PI_next)
+
+    last_tags = (0,0)
+    score = 0.0
+
+    for u in range(n_tags):
+        for v in range(n_tags):
+            if PI[u,v] > score:
+                score = PI[u,v]
+                last_tags = (u,v)
+
+    u, v = last_tags
+    predicted_tags[-2] = index_to_tag_dict[u]
+    predicted_tags[-1] = index_to_tag_dict[v]
+
+    for k in reversed(range(n_words - 2)):
+        t = bp[k, u, v]
+        predicted_tags[k] = t
+        v = u
+        u = t
     ### END YOUR CODE
+    print predicted_tags
     return predicted_tags
 
 def should_add_eval_log(sentene_index):
@@ -123,7 +194,7 @@ def should_add_eval_log(sentene_index):
     return False
 
 
-def memm_eval(test_data, logreg, vec, index_to_tag_dict):
+def memm_eval(test_data, logreg, vec, index_to_tag_dict, train_labels):
     """
     Receives: test data set and the parameters learned by memm
     Returns an evaluation of the accuracy of Viterbi & greedy memm
@@ -131,12 +202,21 @@ def memm_eval(test_data, logreg, vec, index_to_tag_dict):
     acc_viterbi, acc_greedy = 0.0, 0.0
     eval_start_timer = time.time()
 
-    for i, sen in enumerate(test_data):
+    greedy_match = 0
+    vit_match = 0
+    total = 0
 
-        ### YOUR CODE HERE
-        ### Make sure to update Viterbi and greedy accuracy
-        raise NotImplementedError
-        ### END YOUR CODE
+    for i, sen in enumerate(test_data):
+        # vit_pred_tags = memm_viterbi(sen, logreg, vec, index_to_tag_dict, train_labels)
+        greedy_pred_tags = memm_greedy(sen, logreg, vec, index_to_tag_dict)
+        for j in xrange(len(sen)):
+            """ if sen[j][1] == vit_pred_tags[j]:
+                vit_match += 1 """
+            if sen[j][1] == greedy_pred_tags[j]:
+                greedy_match += 1 
+            total += 1
+        acc_greedy = float(greedy_match) / total   
+        acc_viterbi = float(vit_match) / total
 
         if should_add_eval_log(i):
             if acc_greedy == 0 and acc_viterbi == 0:
@@ -193,16 +273,16 @@ if __name__ == "__main__":
     all_examples.extend(dev_examples)
 
     print "Vectorize examples"
-    all_examples_vectorized = vec.fit_transform(all_examples)
+    all_examples_vectorized = vec.fit_transform(train_examples)
     train_examples_vectorized = all_examples_vectorized[:num_train_examples]
     dev_examples_vectorized = all_examples_vectorized[num_train_examples:]
     print "Done"
 
-    print all_examples_vectorized.shape
+    print train_examples_vectorized.shape
     print len(vec.get_feature_names())
 
     logreg = linear_model.LogisticRegression(
-        multi_class='multinomial', max_iter=250, solver='lbfgs', C=100000, verbose=1)
+        multi_class='multinomial', max_iter=128, solver='lbfgs', C=100000, verbose=1)
     print "Fitting..."
     start = time.time()
     logreg.fit(train_examples_vectorized, train_labels)
@@ -213,7 +293,7 @@ if __name__ == "__main__":
     # Evaluation code - do not make any changes
     start = time.time()
     print "Start evaluation on dev set"
-    acc_viterbi, acc_greedy = memm_eval(dev_sents, logreg, vec, index_to_tag_dict)
+    acc_viterbi, acc_greedy = memm_eval(dev_sents, logreg, vec, index_to_tag_dict, train_labels)
     end = time.time()
     print "Dev: Accuracy greedy memm : " + acc_greedy
     print "Dev: Accuracy Viterbi memm : " + acc_viterbi

@@ -1,4 +1,6 @@
 import os
+import re
+
 MIN_FREQ = 3
 def invert_dict(d):
 	res = {}
@@ -89,7 +91,7 @@ def replace_word(word, firstWord):
 		return "containsDigitAndSlash"
 
 	# Time 22:15
-	if hasDigit(word) == True and hasChar(word, ':') == True:
+	if re.match("^[0-9]+:[0-9]+$", word):
 		return "containsDigitAndColon"
 
 	# Monetary anount 23,000.00

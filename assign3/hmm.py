@@ -10,11 +10,47 @@ def hmm_train(sents):
         Returns: the q-counts and e-counts of the sentences' tags, total number of tokens in the sentences
     """
 
-    print "Start training"
     total_tokens = 0
     q_tri_counts, q_bi_counts, q_uni_counts, e_word_tag_counts,e_tag_counts = {}, {}, {}, {}, {}
     ### YOUR CODE HERE
-    raise NotImplementedError
+    for i in range(len(sents)):
+        first = "*";
+        second = "*"
+        for word,tag in sents[i]:
+            total_tokens +=1
+            if word not in q_uni_counts:
+                q_uni_counts[tag] = 1
+            else:
+                q_uni_counts[word] +=1
+            if (second,tag) not in q_bi_counts:
+                 q_bi_counts[(second,tag)] =1
+            else:
+                 q_bi_counts[(second,tag)] +=1
+            if (first,second,tag) not in q_tri_counts:
+                q_tri_counts[(first,second,tag)] =1
+            else:
+                q_tri_counts[(first,second,tag)] +=1
+            if (word,tag) not in e_word_tag_counts:
+                 e_word_tag_counts[(word,tag)] =1
+            else:
+                 e_word_tag_counts[(word,tag)] +=1
+            if tag not in e_tag_counts:
+                e_tag_counts[tag] =1
+            else:
+                e_tag_counts[tag] +=1
+            first = second
+            second = tag
+
+    q_bi_counts[("*","*")] = total_tokens
+    q_uni_counts["*"] = total_tokens
+    for key in q_tri_counts:
+        q_tri_counts[key] =  q_tri_counts[key]*1.0 /q_bi_counts[(key[0],key[1])]
+    for key in q_bi_counts:
+        q_bi_counts[key] = q_bi_counts[key]*1.0/ q_uni_counts[key[0]]
+    for key in q_uni_counts:
+        q_uni_counts[key] =  q_uni_counts[key]*1.0/ total_tokens
+    for key in e_word_tag_counts:
+        e_word_tag_counts[key] = e_word_tag_counts[key]*1.0/  e_tag_counts[key[1]]
     ### END YOUR CODE
     return total_tokens, q_tri_counts, q_bi_counts, q_uni_counts, e_word_tag_counts,e_tag_counts
 

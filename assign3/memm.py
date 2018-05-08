@@ -6,7 +6,10 @@ from submitters_details import get_details
 import re
 import numpy as np
 import copy
+import heapq
 
+MAX_SENT = 100000
+HEAP_SIZE = 10
 
 def extract_features_base(curr_word, next_word, prev_word, prevprev_word, prev_tag, prevprev_tag):
     """
@@ -24,50 +27,35 @@ def extract_features_base(curr_word, next_word, prev_word, prevprev_word, prev_t
             features[str.format("pref{}", i)] = curr_word[:i]
             features[str.format("suff{}", i)] = curr_word[len(curr_word) - i:]
     features['prevprev_tag'] = prevprev_tag
-    features['bigram'] = prev_tag
-    features['trigram'] = str.format("{}_{}", prevprev_tag, prev_tag)
+    features['prev_tag'] = prev_tag
+    features['prevprev_prev_tag'] = str.format("{}_{}", prevprev_tag, prev_tag)
     ### END YOUR CODE
     return features
 
-def extract_features_base_aa(curr_word, next_word, prev_word, prevprev_word, prev_tag, prevprev_tag):
-    """
-        Receives: a word's local information
-        Rerutns: The word's features.
-    """
-    features = {}
-    features['word'] = curr_word
-    features['prev_tag'] = prev_tag
-    features['prevprev_tag'] = prevprev_tag
-    features['tag_bigram'] = prevprev_tag + "-" + prev_tag
-    features['prev_wordtag_pairs'] = prev_word + "/" + prev_tag
-    features['prevprev_wordtag_pairs'] = prevprev_word + "/" + prevprev_tag
-    features['next_word'] = next_word
-
-    if curr_word in vocab and vocab[curr_word] >= MIN_FREQ:
-        features['pref1'] = curr_word[0]
-        features['pref2'] = curr_word[0:2]
-        features['pref3'] = curr_word[0:3]
-        features['pref4'] = curr_word[0:4]
-        features['suf1'] = curr_word[-1]
-        features['suf2'] = curr_word[-2:]
-        features['suf3'] = curr_word[-3:]
-        features['suf4'] = curr_word[-4:]
-
-        if re.compile(".*[A-Z]").match(curr_word):
-            features['has_uppercase'] = 1
-        if re.compile(".*\d").match(curr_word):
-            features['has_number'] = 1
-        if re.compile(".*-").match(curr_word):
-            features['has_hyphen'] = 1
-
-    return features
-
-def extract_features(sentence, i):
+def extract_features(sentence, i):    
     curr_word = sentence[i][0]
     prev_token = sentence[i - 1] if i > 0 else ('<s>', '*')
     prevprev_token = sentence[i - 2] if i > 1 else ('<s>', '*')
     next_token = sentence[i + 1] if i < (len(sentence) - 1) else ('</s>', 'STOP')
     return extract_features_base(curr_word, next_token[0], prev_token[0], prevprev_token[0], prev_token[1], prevprev_token[1])
+
+def extract_multiple_features(features, tag_value_pairs, index_to_tag_dict):
+    examples = []
+    example_ind = {}
+    cur_ind = 0
+
+    for t, u in tag_value_pairs:
+        example = copy.copy(features)
+        prev_tag = index_to_tag_dict[u]
+        prevprev_tag = index_to_tag_dict[t]
+        # overwrite tag related features only
+        example['prev_tag'] = prev_tag
+        example['prevprev_tag'] = prevprev_tag
+        example['prevprev_prev_tag'] = str.format("{}_{}", prevprev_tag, prev_tag)
+        examples.append(example)
+        example_ind[(t,u)] = cur_ind
+        cur_ind += 1
+    return examples, example_ind
 
 def vectorize_features(vec, features):
     """
@@ -88,6 +76,8 @@ def create_examples(sents, tag_to_idx_dict):
     count = 0
     for sent in sents:
         num_of_sents += 1
+        if num_of_sents > MAX_SENT:
+            break
         for i in xrange(len(sent)):
             features = extract_features(sent, i)
             examples.append(features)
@@ -102,86 +92,100 @@ def memm_greedy(sent, logreg, vec, index_to_tag_dict):
     predicted_tags = [""] * (len(sent))
 
     # clear tags
-    new_sent = [(word, None) for (word, _) in range(len(sent))]
-   
+    new_sent = [(word, None) for (word, _) in sent]
+    
     for i in xrange(len(sent)):
         vec_pos = vectorize_features(vec, extract_features(new_sent, i))
         tag_ind = logreg.predict(vec_pos)[0]
         tag = index_to_tag_dict[tag_ind]
         predicted_tags[i] = tag
-        new_sent[i] = tag
+        new_sent[i] = new_sent[i][0], tag
 
     return predicted_tags
 
 
-def memm_viterbi(sent, logreg, vec, index_to_tag_dict, train_labels):
+def memm_viterbi(sent, logreg, vec, index_to_tag_dict):
     """
         Receives: a sentence to tag and the parameters learned by memm
         Returns: predicted tags for the sentence
     """
     tag_to_index_dict = invert_dict(index_to_tag_dict)
 
-    train_labels_dict = { train_labels[i] : 1 for i in range(len(train_labels))}
-
     print sent
 
     predicted_tags = [""] * (len(sent))
     ### YOUR CODE HERE
     n_tags = len(index_to_tag_dict)
-    n_words = len(sent)
-    PI = np.zeros((n_tags, n_tags))
-    PI_next = np.zeros((n_tags, n_tags))
-    bp = np.zeros((n_tags, n_tags, n_tags))
-    bp += -1
+    pi_dict = {}
+    bp_dict = {}
 
-    PI[tag_to_index_dict['*'], tag_to_index_dict['*']] = 1.0
+    heap = [] # min heap
+    heapq.heappush(heap, (1.0, tag_to_index_dict['*'], tag_to_index_dict['*']))
 
     # clear tags
-    new_sent = copy.copy([(sent[i][0], None) for i in range(n_words)])
+    new_sent = [(word, None) for (word, _) in sent]
 
-    for k in range(n_words):
-        print str.format("k={}", k)
-        for u in range(n_tags):
+    best_u = 0
+    best_v = 0
+
+    for k in range(len(sent)):
+        best_u = 0
+        best_v = 0
+        best_score = 0
+        # print str.format("heap size={}, k={}", len(heap), k)
+        if k > 1 or k > 0:
+                new_sent[k - 1] = new_sent[k - 1][0], index_to_tag_dict[u]
+                if k > 1:
+                    new_sent[k - 2] = new_sent[k - 2][0], index_to_tag_dict[t]
+
+        features = extract_features(new_sent, k)
+        tag_value_pairs = [(t,u) for (_,t,u) in heap]
+        examples, example_ind = extract_multiple_features(features, tag_value_pairs, index_to_tag_dict)
+        vec_pos = vec.transform(examples)
+
+        while heap:
+            prev_val, t, u = heapq.heappop(heap)
+            # print str.format("val={} t={} u={}", prev_val, index_to_tag_dict[t], index_to_tag_dict[u])
+            
+            prob = logreg.predict_proba(vec_pos)[example_ind[(t,u)]]
+
             for v in range(n_tags):
-                PI_next[u,v] = 0.0
-                if v not in train_labels_dict:
-                    continue
-                # print str.format("u={} v={}", index_to_tag_dict[u], index_to_tag_dict[v])
-                for t in range(n_tags):
-                    if PI[t, u] <= 0:
-                        continue
-                    # print str.format("k={} t={}", k, index_to_tag_dict[t])
-                    if k > 1 or k > 0:
-                        new_sent[k - 1] = new_sent[k - 1][0], index_to_tag_dict[u]
-                        if k > 1:
-                            new_sent[k - 2] = new_sent[k - 2][0], index_to_tag_dict[t] 
-                    vec_pos = vectorize_features(vec, extract_features(new_sent, k))
-                    prob = logreg.predict_proba(vec_pos)[0]
-                    res = PI[t,u] * prob[v] # PI(k-1, t, u) * q(v/t,u,w,k)
-                    if res > PI_next[u,v]:
-                        PI_next[u,v] = res
-                        bp[k, u, v] = t
+                if tag_to_index_dict['*'] == v: 
+                    continue 
+                score = prev_val * prob[v] # PI(k-1, t, u) * q(v/t,u,w,k)
+                key = (u,v) 
+                val = pi_dict.get(key) if pi_dict.has_key(key) == True else 0
+                if score > val:
+                    pi_dict[key] = score
+                    bp_dict[(k, u, v)] = t
+                    if score > best_score:
+                        best_u = u
+                        best_v = v
+                        best_score = score
 
-        PI = copy.copy(PI_next)
+        is_full = False
 
-    last_tags = (0,0)
-    score = 0.0
+        for key, val in pi_dict.iteritems():
+            u, v = key
+            elem = (val, u, v)
+            if is_full or len(heap) >= HEAP_SIZE:
+                is_full = True
+                if val > heap[0][0]:
+                    heapq.heappushpop(heap, elem)
+            else:
+                heapq.heappush(heap, elem)
 
-    for u in range(n_tags):
-        for v in range(n_tags):
-            if PI[u,v] > score:
-                score = PI[u,v]
-                last_tags = (u,v)
+        pi_dict = {}
 
-    u, v = last_tags
-    predicted_tags[-2] = index_to_tag_dict[u]
-    predicted_tags[-1] = index_to_tag_dict[v]
+    if len(sent) > 1:
+        predicted_tags[-2] = index_to_tag_dict[best_u]
+    predicted_tags[-1] = index_to_tag_dict[best_v]
 
-    for k in reversed(range(n_words - 2)):
-        t = bp[k, u, v]
-        predicted_tags[k] = t
-        v = u
-        u = t
+    for k in reversed(range(2, len(sent))):
+        t = bp_dict.get((k, best_u, best_v))
+        predicted_tags[k - 2] = index_to_tag_dict[t]
+        best_v = best_u
+        best_u = t
     ### END YOUR CODE
     print predicted_tags
     return predicted_tags
@@ -194,7 +198,7 @@ def should_add_eval_log(sentene_index):
     return False
 
 
-def memm_eval(test_data, logreg, vec, index_to_tag_dict, train_labels):
+def memm_eval(test_data, logreg, vec, index_to_tag_dict):
     """
     Receives: test data set and the parameters learned by memm
     Returns an evaluation of the accuracy of Viterbi & greedy memm
@@ -207,14 +211,11 @@ def memm_eval(test_data, logreg, vec, index_to_tag_dict, train_labels):
     total = 0
 
     for i, sen in enumerate(test_data):
-        # vit_pred_tags = memm_viterbi(sen, logreg, vec, index_to_tag_dict, train_labels)
-        greedy_pred_tags = memm_greedy(sen, logreg, vec, index_to_tag_dict)
-        for j in xrange(len(sen)):
-            """ if sen[j][1] == vit_pred_tags[j]:
-                vit_match += 1 """
-            if sen[j][1] == greedy_pred_tags[j]:
-                greedy_match += 1 
-            total += 1
+        predicted_tags = memm_viterbi(sen, logreg, vec, index_to_tag_dict)
+        vit_match += sum([predicted_tags[j] == sen[j][1] for j in range(len(sen))])
+        predicted_tags = memm_greedy(sen, logreg, vec, index_to_tag_dict)
+        greedy_match += sum([predicted_tags[j] == sen[j][1] for j in range(len(sen))])
+        total += len(sen)
         acc_greedy = float(greedy_match) / total   
         acc_viterbi = float(vit_match) / total
 
@@ -230,7 +231,11 @@ def memm_eval(test_data, logreg, vec, index_to_tag_dict, train_labels):
 def build_tag_to_idx_dict(train_sentences):
     curr_tag_index = 0
     tag_to_idx_dict = {}
+    num_of_sent = 0
     for train_sent in train_sentences:
+        num_of_sent += 1
+        if num_of_sent > MAX_SENT:
+            break
         for token in train_sent:
             tag = token[1]
             if tag not in tag_to_idx_dict:
@@ -293,7 +298,7 @@ if __name__ == "__main__":
     # Evaluation code - do not make any changes
     start = time.time()
     print "Start evaluation on dev set"
-    acc_viterbi, acc_greedy = memm_eval(dev_sents, logreg, vec, index_to_tag_dict, train_labels)
+    acc_viterbi, acc_greedy = memm_eval(dev_sents, logreg, vec, index_to_tag_dict)
     end = time.time()
     print "Dev: Accuracy greedy memm : " + acc_greedy
     print "Dev: Accuracy Viterbi memm : " + acc_viterbi

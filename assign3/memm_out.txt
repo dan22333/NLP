@@ -1,0 +1,40 @@
+201014560_057931354      email: raffilevy@gmail.com
+replaced: 0.0352368561769
+replaced: 0.0494304160331
+Create train examples
+#example: 950028
+Done
+Create dev examples
+#example: 40117
+Done
+Vectorize examples
+Done
+Fitting...
+End training, elapsed 571.630000114 seconds
+Start evaluation on dev set
+Sentence index: 10 greedy_acc: 0.977848101266    Viterbi_acc:0.98417721519 , elapsed: 66.378000021 
+Sentence index: 20 greedy_acc: 0.969858156028    Viterbi_acc:0.973404255319 , elapsed: 51.7109999657 
+Sentence index: 30 greedy_acc: 0.958602846054    Viterbi_acc:0.961190168176 , elapsed: 43.2230000496 
+Sentence index: 40 greedy_acc: 0.957068062827    Viterbi_acc:0.959162303665 , elapsed: 37.5309998989 
+Sentence index: 50 greedy_acc: 0.952782462057    Viterbi_acc:0.954468802698 , elapsed: 48.0490000248 
+Sentence index: 60 greedy_acc: 0.951408450704    Viterbi_acc:0.952816901408 , elapsed: 48.7330000401 
+Sentence index: 70 greedy_acc: 0.952830188679    Viterbi_acc:0.954088050314 , elapsed: 34.8439998627 
+Sentence index: 80 greedy_acc: 0.951551442569    Viterbi_acc:0.954817637452 , elapsed: 51.4520001411 
+Sentence index: 90 greedy_acc: 0.941887494189    Viterbi_acc:0.944676894468 , elapsed: 65.9219999313 
+Sentence index: 100 greedy_acc: 0.934712084347    Viterbi_acc:0.937145174371 , elapsed: 66.5320000648 
+Sentence index: 110 greedy_acc: 0.932481751825    Viterbi_acc:0.934671532847 , elapsed: 57.3659999371 
+Sentence index: 120 greedy_acc: 0.92943956786    Viterbi_acc:0.931127616475 , elapsed: 46.1340000629 
+Sentence index: 130 greedy_acc: 0.933017377567    Viterbi_acc:0.934597156398 , elapsed: 41.9839999676 
+Sentence index: 140 greedy_acc: 0.937262912168    Viterbi_acc:0.938721914211 , elapsed: 55.2079999447 
+Sentence index: 150 greedy_acc: 0.935387131952    Viterbi_acc:0.936750272628 , elapsed: 50.135999918 
+Sentence index: 200 greedy_acc: 0.93961301297    Viterbi_acc:0.940463533915 , elapsed: 41.1130001545
+Sentence index: 400 greedy_acc: 0.95486935867    Viterbi_acc:0.955282453785 , elapsed: 68.0620000362
+Sentence index: 600 greedy_acc: 0.953248203196    Viterbi_acc:0.95408554881 , elapsed: 72.7649998665
+Sentence index: 800 greedy_acc: 0.954649469524    Viterbi_acc:0.955065529436 , elapsed: 50.1410000324
+Sentence index: 1000 greedy_acc: 0.95704827355    Viterbi_acc:0.957341602414 , elapsed: 34.1870000362
+Sentence index: 1200 greedy_acc: 0.957027159115    Viterbi_acc:0.957306430217 , elapsed: 42.4140000343 
+Sentence index: 1400 greedy_acc: 0.957308205066    Viterbi_acc:0.957762695431 , elapsed: 36.631000042
+Sentence index: 1600 greedy_acc: 0.957677713801    Viterbi_acc:0.958181866426 , elapsed: 54.9349999428
+Dev: Accuracy greedy memm : 0.95799785627
+Dev: Accuracy Viterbi memm : 0.958371762594
+Evaluation on dev set elapsed: 8353.5079999 seconds 

@@ -117,6 +117,7 @@ def hmm_viterbi(sent, total_tokens, q_tri_counts, q_bi_counts, q_uni_counts, e_w
         predicted_tags[j]  = tags[j]
 
     ### END YOUR CODE
+    print predicted_tags, sent, len(predicted_tags), len(sent)
     return predicted_tags
 
 def hmm_eval(test_data, total_tokens, q_tri_counts, q_bi_counts, q_uni_counts, e_word_tag_counts,e_tag_counts):
@@ -169,6 +170,7 @@ if __name__ == "__main__":
     dev_sents = preprocess_sent(vocab, dev_sents)
 
     total_tokens, q_tri_counts, q_bi_counts, q_uni_counts, e_word_tag_counts, e_tag_counts = hmm_train(train_sents)
+    hmm_viterbi(dev_sents[0],total_tokens, q_tri_counts, q_bi_counts, q_uni_counts, e_word_tag_counts,e_tag_counts,0.5,0.3)
     verify_hmm_model(total_tokens, q_tri_counts, q_bi_counts, q_uni_counts, e_word_tag_counts, e_tag_counts)
     acc_viterbi = hmm_eval(dev_sents, total_tokens, q_tri_counts, q_bi_counts, q_uni_counts, e_word_tag_counts,e_tag_counts)
     print "Dev: Accuracy of Viterbi hmm: " + acc_viterbi

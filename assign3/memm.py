@@ -8,9 +8,6 @@ import numpy as np
 import copy
 import heapq
 
-MAX_SENT = 100000
-HEAP_SIZE = 10
-
 def extract_features_base(curr_word, next_word, prev_word, prevprev_word, prev_tag, prevprev_tag):
     """
         Receives: a word's local information
@@ -72,12 +69,7 @@ def vectorize_features(vec, features):
 def create_examples(sents, tag_to_idx_dict):
     examples = []
     labels = []
-    num_of_sents = 0
-    count = 0
     for sent in sents:
-        num_of_sents += 1
-        if num_of_sents > MAX_SENT:
-            break
         for i in xrange(len(sent)):
             features = extract_features(sent, i)
             examples.append(features)
@@ -111,13 +103,12 @@ def memm_viterbi(sent, logreg, vec, index_to_tag_dict):
     """
     tag_to_index_dict = invert_dict(index_to_tag_dict)
 
-    print sent
-
     predicted_tags = [""] * (len(sent))
     ### YOUR CODE HERE
     n_tags = len(index_to_tag_dict)
     pi_dict = {}
     bp_dict = {}
+    beam = 10 # set the number of top best tag_i-2, tag_i-1 pairs of PI_k-1
 
     heap = [] # min heap
     heapq.heappush(heap, (1.0, tag_to_index_dict['*'], tag_to_index_dict['*']))
@@ -132,7 +123,6 @@ def memm_viterbi(sent, logreg, vec, index_to_tag_dict):
         best_u = 0
         best_v = 0
         best_score = 0
-        # print str.format("heap size={}, k={}", len(heap), k)
         if k > 1 or k > 0:
                 new_sent[k - 1] = new_sent[k - 1][0], index_to_tag_dict[u]
                 if k > 1:
@@ -140,12 +130,13 @@ def memm_viterbi(sent, logreg, vec, index_to_tag_dict):
 
         features = extract_features(new_sent, k)
         tag_value_pairs = [(t,u) for (_,t,u) in heap]
+        # extract tag related features to multiple examples
+        # where each pair of tags specify an example
         examples, example_ind = extract_multiple_features(features, tag_value_pairs, index_to_tag_dict)
         vec_pos = vec.transform(examples)
 
         while heap:
             prev_val, t, u = heapq.heappop(heap)
-            # print str.format("val={} t={} u={}", prev_val, index_to_tag_dict[t], index_to_tag_dict[u])
             
             prob = logreg.predict_proba(vec_pos)[example_ind[(t,u)]]
 
@@ -168,7 +159,7 @@ def memm_viterbi(sent, logreg, vec, index_to_tag_dict):
         for key, val in pi_dict.iteritems():
             u, v = key
             elem = (val, u, v)
-            if is_full or len(heap) >= HEAP_SIZE:
+            if is_full or len(heap) >= beam:
                 is_full = True
                 if val > heap[0][0]:
                     heapq.heappushpop(heap, elem)
@@ -187,7 +178,6 @@ def memm_viterbi(sent, logreg, vec, index_to_tag_dict):
         best_v = best_u
         best_u = t
     ### END YOUR CODE
-    print predicted_tags
     return predicted_tags
 
 def should_add_eval_log(sentene_index):
@@ -231,11 +221,7 @@ def memm_eval(test_data, logreg, vec, index_to_tag_dict):
 def build_tag_to_idx_dict(train_sentences):
     curr_tag_index = 0
     tag_to_idx_dict = {}
-    num_of_sent = 0
     for train_sent in train_sentences:
-        num_of_sent += 1
-        if num_of_sent > MAX_SENT:
-            break
         for token in train_sent:
             tag = token[1]
             if tag not in tag_to_idx_dict:
@@ -283,8 +269,8 @@ if __name__ == "__main__":
     dev_examples_vectorized = all_examples_vectorized[num_train_examples:]
     print "Done"
 
-    print train_examples_vectorized.shape
-    print len(vec.get_feature_names())
+    # print train_examples_vectorized.shape
+    # print len(vec.get_feature_names())
 
     logreg = linear_model.LogisticRegression(
         multi_class='multinomial', max_iter=128, solver='lbfgs', C=100000, verbose=1)

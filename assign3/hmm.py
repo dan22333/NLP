@@ -261,7 +261,7 @@ def grid_search(test_data, total_tokens, q_tri_counts, q_bi_counts, q_uni_counts
         lambda1 += step
 
     print str.format("best parameters lambda1={} lambda2={} lambda3={}:", 
-        lambda1_best, " lambda2:",lambda2_best, 1.0 - lambda1_best - lambda2_best)
+        lambda1_best, lambda2_best, 1.0 - lambda1_best - lambda2_best)
 
     ### END YOUR CODE
 

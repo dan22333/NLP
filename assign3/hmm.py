@@ -6,8 +6,6 @@ from tester import verify_hmm_model
 from collections import defaultdict, deque
 import numpy as np
 
-LOG_PROB_OF_ZERO = -1000
-
 def hmm_train(sents):
     """
         sents: list of tagged sentences
@@ -22,7 +20,7 @@ def hmm_train(sents):
     ### YOUR CODE HERE
     for i in range(len(sents)):
         n_sents += 1
-        first = "*";
+        first = "*"
         second = "*"
         for word,tag in sents[i]:
             total_tokens += 1
@@ -49,34 +47,51 @@ def hmm_train(sents):
             first = second
             second = tag
 
+        key = (first, second, 'STOP')
+        if key in q_tri_counts:
+            q_tri_counts[key] += 1
+        else:
+            q_tri_counts[key] = 1
+
     q_bi_counts[("*","*")] = n_sents
     q_uni_counts["*"] = n_sents
 
     for key in q_tri_counts: # q(yi/(yi-2,yi-1))
-        q_tri_counts[key] =  q_tri_counts[key] * 1.0 / q_bi_counts[(key[0],key[1])]
+        q_tri_counts[key] =  np.log([q_tri_counts[key] * 1.0 / q_bi_counts[(key[0],key[1])]])[0]
     for key in q_bi_counts: # q(yi/yi-1)
-        q_bi_counts[key] = q_bi_counts[key] * 1.0 / q_uni_counts[key[0]]
+        q_bi_counts[key] = np.log([q_bi_counts[key] * 1.0 / q_uni_counts[key[0]]])[0]
     for key in q_uni_counts: # c(w) / total tokens
-        q_uni_counts[key] =  q_uni_counts[key] * 1.0 / total_tokens
+        q_uni_counts[key] =  np.log([q_uni_counts[key] * 1.0 / total_tokens])[0]
     for key in e_word_tag_counts: # p(xi/yi)
-        e_word_tag_counts[key] = e_word_tag_counts[key] * 1.0 / e_tag_counts[key[1]]
+        e_word_tag_counts[key] = np.log([e_word_tag_counts[key] * 1.0 / e_tag_counts[key[1]]])[0]
     ### END YOUR CODE
     return total_tokens, q_tri_counts, q_bi_counts, q_uni_counts, \
         e_word_tag_counts, e_tag_counts
 
+# Tags are defined by their names
+# Used for (STOP, v, u) triple
+def get_tri_q(tag_v, tag_u, tag_w, q_tri_counts, lambda1):
+    prob = -np.inf
+    tri = (tag_w, tag_u, tag_v)
+
+    if q_tri_counts.get(tri) != None:
+        prob = q_tri_counts[tri] * lambda1
+
+    return prob
+
 def get_q(v, u, w, q_tri_counts, q_bi_counts, q_uni_counts, lambda1, \
     lambda2, index_to_tag_dict):
     """
-        v is current tag
-        u is previous tag
-        w is previous previous tag
+        v is current tag index
+        u is previous tag index
+        w is previous previous tag index
     """
 
     tag_v = index_to_tag_dict[v]
     tag_u = index_to_tag_dict[u]
     tag_w = index_to_tag_dict[w]
 
-    prob = 0.0
+    prob = -np.inf
     tri = (tag_w, tag_u, tag_v)
 
     if q_tri_counts.get(tri) != None:
@@ -89,20 +104,15 @@ def get_q(v, u, w, q_tri_counts, q_bi_counts, q_uni_counts, lambda1, \
     if q_uni_counts.get(tag_v) != None:
         prob += q_uni_counts[tag_v] * (1 - lambda1 - lambda2)
 
-    if prob <= 0.0:
-        prob = LOG_PROB_OF_ZERO 
     return prob
 
 def get_e(word, tag, e_word_tag_counts, index_to_tag_dict):
-    prob = 0.0
+    prob = -np.inf
     pair = (word, index_to_tag_dict[tag])
 
     if e_word_tag_counts.get(pair) != None:
         prob = e_word_tag_counts[pair]
-    else:
-        prob = LOG_PROB_OF_ZERO
 
-    # print str.format("word={} tag={} e_prob={}", pair[0], pair[1], prob)
     return prob
 
 def hmm_viterbi(sent, total_tokens, q_tri_counts, q_bi_counts, q_uni_counts, 
@@ -111,8 +121,6 @@ def hmm_viterbi(sent, total_tokens, q_tri_counts, q_bi_counts, q_uni_counts,
         Receives: a sentence to tag and the parameters learned by hmm
         Returns: predicted tags for the sentence
     """
-
-    # print sent
 
     predicted_tags = [""] * (len(sent))
     ### YOUR CODE HERE
@@ -124,30 +132,32 @@ def hmm_viterbi(sent, total_tokens, q_tri_counts, q_bi_counts, q_uni_counts,
 
     pi = defaultdict(float)
     bp = {}
-    
+
     # Initialization
     pi[(0, tag_to_index_dict[START_SYMBOL], tag_to_index_dict[START_SYMBOL])] = 0.0
-    n  = len(sent)
+    n = len(sent)
+
+    # Store the last k. k may not necessarily reach n if at some k0 < n
+    # pi[k0,u,v] for all u,v is zero 
+    last_k = 0 
+
     for k in range(1, n + 1):
         for v in index_to_tag_dict.keys():
             if index_to_tag_dict[v] == START_SYMBOL:
                 continue
-            # print str.format("word={} v={}", sent[k - 1][0], index_to_tag_dict[v])
-            if get_e(sent[k - 1][0], v, e_word_tag_counts, index_to_tag_dict) <=  LOG_PROB_OF_ZERO: # prunning
+            e_val = get_e(sent[k - 1][0], v, e_word_tag_counts, index_to_tag_dict)
+            if e_val <= -np.inf: # prunning
                 continue
             for u in index_to_tag_dict.keys():
-                max_score = float('-Inf')
+                max_score = -np.inf
                 max_w = None 
                 for w in index_to_tag_dict.keys(): 
-                    score = pi.get((k - 1, w, u), LOG_PROB_OF_ZERO)
-                    if score <= LOG_PROB_OF_ZERO:
+                    prev_val = pi.get((k - 1, w, u), -np.inf)
+                    if prev_val <= -np.inf:
                         continue 
-                    score += get_q(v, u, w, q_tri_counts, q_bi_counts, q_uni_counts, \
-                        lambda1, lambda2, index_to_tag_dict) + \
+                    score = prev_val + get_q(v, u, w, q_tri_counts, q_bi_counts, 
+                        q_uni_counts, lambda1, lambda2, index_to_tag_dict) + \
                         get_e(sent[k - 1][0], v, e_word_tag_counts, index_to_tag_dict)
-
-                    # print str.format("word={} v={} u={} w={}", sent[k - 1][0], \
-                            # index_to_tag_dict[v], index_to_tag_dict[u], index_to_tag_dict[w])
 
                     if score > max_score:
                         max_score = score
@@ -156,49 +166,71 @@ def hmm_viterbi(sent, total_tokens, q_tri_counts, q_bi_counts, q_uni_counts,
                 if max_w != None:
                     pi[(k, u, v)] = max_score
                     bp[(k, u, v)] = max_w
-                    # print str.format("k={} word={} v={} u={} max_w={} score={}", k, sent[k - 1][0], \
-                            # index_to_tag_dict[v], index_to_tag_dict[u], \
-                            # index_to_tag_dict[max_w], max_score)
+                    last_k = k
 
-    max_score = float('-Inf')
+        # pi[k,_,_] was not built
+        if k > last_k:
+            break;
+
+    max_score = -np.inf
     u_max, v_max = None, None
     for u in index_to_tag_dict.keys():
         for v in index_to_tag_dict.keys():
-            score = pi.get((n, u, v), LOG_PROB_OF_ZERO)          
-                # + get_q(STOP_SYMBOL, v, u, q_tri_counts, q_bi_counts, 
-                # q_uni_counts, lambda1, lambda2)
+            score = pi.get((last_k, u, v), -np.inf)
+            if score <= -np.inf:
+                continue
+            if last_k == n:
+                score += get_tri_q(STOP_SYMBOL, index_to_tag_dict[v], 
+                    index_to_tag_dict[u], q_tri_counts, lambda1)    
+            if score <= -np.inf:
+                continue
             if score > max_score: 
                 max_score = score
                 u_max = u
                 v_max = v
 
-    if len(sent) > 1:
-        predicted_tags[-2] = index_to_tag_dict[u_max]
-    predicted_tags[-1] = index_to_tag_dict[v_max]
+    k = last_k
+
+    if k > 1:
+        predicted_tags[k - 2] = index_to_tag_dict[u_max]
+    predicted_tags[k - 1] = index_to_tag_dict[v_max]
 
     u = u_max
     v = v_max
-    i = 3
-    for k in range(n, 2, -1):
-        # print str.format("k={} u={} v={}", k, index_to_tag_dict[u], index_to_tag_dict[v])
+
+    while k > 2:
         w = bp[(k, u, v)]
-        predicted_tags[-i] = index_to_tag_dict[w]
+        predicted_tags[k - 3] = index_to_tag_dict[w]
         v = u
         u = w
-        i += 1
+        k -= 1
 
     ### END YOUR CODE
-    # print [(sent[i][0], predicted_tags[i]) for i in range(len(sent))]
     return predicted_tags
 
 def hmm_eval(test_data, total_tokens, q_tri_counts, q_bi_counts, q_uni_counts, 
+        e_word_tag_counts,e_tag_counts, lambda1, lambda2, tag_to_index_dict):
+
+    total = 0
+    match = 0
+    count = 0
+
+    for sent in test_data:
+        pred_tags = hmm_viterbi(sent, total_tokens, q_tri_counts, q_bi_counts, 
+            q_uni_counts, e_word_tag_counts, e_tag_counts, lambda1, lambda2,
+            tag_to_index_dict)
+
+        total += len(pred_tags)
+        match += sum([pred_tags[i] == sent[i][1] for i in range(len(sent))])
+
+    return match * 1.0 / total
+
+def grid_search(test_data, total_tokens, q_tri_counts, q_bi_counts, q_uni_counts, 
         e_word_tag_counts,e_tag_counts, tag_to_index_dict):
     """
-    Receives: test data set and the parameters learned by hmm
-    Returns an evaluation of the accuracy of hmm
+        Receives: test data set and the parameters learned by hmm
+        an evaluation of the accuracy of hmm
     """
-    
-    print "Start evaluation"
 
     acc_viterbi = 0.0
     ### YOUR CODE HERE
@@ -211,38 +243,29 @@ def hmm_eval(test_data, total_tokens, q_tri_counts, q_bi_counts, q_uni_counts,
     while lambda1 <= 1.0:
         lambda2 = 0
         while lambda2 <= (1.0 - lambda1):
-            acc = 0.0
-            total = 0
-            match = 0
             start = time.time()
-            for sent in test_data:
-                pred_tags = hmm_viterbi(sent, total_tokens, q_tri_counts, q_bi_counts, 
-                    q_uni_counts, e_word_tag_counts, e_tag_counts, lambda1, lambda2,
-                    tag_to_index_dict)
+            acc = hmm_eval(test_data, total_tokens, q_tri_counts, q_bi_counts, 
+                q_uni_counts, e_word_tag_counts, e_tag_counts, lambda1, lambda2,
+                tag_to_index_dict)
 
-                total += len(pred_tags)
-
-                for i in range(len(pred_tags)):
-                    if pred_tags[i] == sent[i][1]:
-                        match += 1
-            acc  = match * 1.0 / total
             end = time.time()
-            print str.format("lambda1={} lambda2={} score={} time in Sec={}", lambda1, lambda2, acc, end - start)
+            print str.format("lambda1={} lambda2={} score={} time in Sec={}", 
+                lambda1, lambda2, acc, end - start)
 
             if acc > acc_viterbi:
                 acc_viterbi = acc
                 lambda1_best = lambda1
                 lambda2_best = lambda2
-                print str.format("best score lambda1={} lambda2={} score={}", lambda1, lambda2, acc)
 
             lambda2 += step
         lambda1 += step
 
-    print "best parameters lambda1:", lambda1_best, " lambda2:",lambda2_best, \
-        " lambda3", 1-(lambda2_best+lambda1_best)
+    print str.format("best parameters lambda1={} lambda2={} lambda3={}:", 
+        lambda1_best, " lambda2:",lambda2_best, 1.0 - lambda1_best - lambda2_best)
+
     ### END YOUR CODE
 
-    return str(acc_viterbi)
+    return lambda1_best, lambda2_best
 
 if __name__ == "__main__":
     print (get_details())
@@ -257,27 +280,17 @@ if __name__ == "__main__":
     total_tokens, q_tri_counts, q_bi_counts, q_uni_counts, \
         e_word_tag_counts, e_tag_counts = hmm_train(train_sents)
 
-    """
-    pred_tags = hmm_viterbi(dev_sents[0], total_tokens, q_tri_counts, q_bi_counts, q_uni_counts, 
-        e_word_tag_counts, e_tag_counts, 0.5, 0.3, tag_to_idx_dict)
-
-    match = sum([pred_tags[i] == dev_sents[0][i][1] for i in range(len(dev_sents[0]))])
-
-    print "Dev: Accuracy of Viterbi hmm: " + str(float(match) / len(dev_sents[0]))
-
-    verify_hmm_model(total_tokens, q_tri_counts, q_bi_counts, q_uni_counts, 
-        e_word_tag_counts, e_tag_counts)
-    """
-
-    acc_viterbi = hmm_eval(dev_sents, total_tokens, q_tri_counts, q_bi_counts, \
+    lambda1, lambda2 = grid_search(dev_sents, total_tokens, q_tri_counts, q_bi_counts,
         q_uni_counts, e_word_tag_counts, e_tag_counts, tag_to_idx_dict)
-    
 
-    print "Dev: Accuracy of Viterbi hmm: " + acc_viterbi
+    acc_viterbi = hmm_eval(dev_sents, total_tokens, q_tri_counts, q_bi_counts,
+        q_uni_counts, e_word_tag_counts, e_tag_counts, lambda1, lambda2, tag_to_idx_dict)
+ 
+    print "Dev: Accuracy of Viterbi hmm: " + str(acc_viterbi)
 
     train_dev_time = time.time()
     print "Train and dev evaluation elapsed: " + str(train_dev_time - start_time) + " seconds"
-
+ 
     if os.path.exists("Penn_Treebank/test.gold.conll"):
         test_sents = read_conll_pos_file("Penn_Treebank/test.gold.conll")
         test_sents = preprocess_sent(vocab, test_sents)

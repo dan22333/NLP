@@ -102,7 +102,6 @@ def make_windowed_data(data, start, end, window_size = 1):
             sentence = window_size * [start] + sentence + window_size * [end]
             for k, entity in enumerate(sentence[window_size:-window_size]):
                 label = labels[k]
-                # k needs to consider the window_size when slicing sentence
                 k += window_size
                 fea = np.concatenate(sentence[k - window_size: k + window_size + 1]).tolist()
                 windowed_data.append((fea, label))

@@ -46,7 +46,7 @@ class Config:
     embed_size = 50
     hidden_size = 200
     batch_size = 2048
-    n_epochs = 70
+    n_epochs = 10
     lr = 0.001
 
     def __init__(self, output_path=None):

@@ -387,6 +387,7 @@ def do_train(args):
     helper, train, dev, train_raw, dev_raw = load_and_preprocess_data(args)
     embeddings = load_embeddings(args, helper)
     config.embed_size = embeddings.shape[1]
+    print(config.output_path)
     helper.save(config.output_path)
 
     handler = logging.FileHandler(config.log_output)

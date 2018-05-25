@@ -62,7 +62,14 @@ class RNNCell(tf.nn.rnn_cell.RNNCell):
         # be defined elsewhere!
         with tf.variable_scope(scope):
             ### YOUR CODE HERE (~6-10 lines)
-
+            W_x = tf.get_variable("W_x", (self.input_size, self.state_size),initializer=tf.contrib.layers.xavier_initializer())
+            W_h = tf.get_variable("W_h", (self.state_size, self.state_size),initializer=tf.contrib.layers.xavier_initializer())
+            b = tf.get_variable("b", ((self.state_size,)),initializer=tf.contrib.layers.xavier_initializer())
+            # or equivalently, when there is just one layer, maybe
+            # xavier_initializer behaves the same as tf.ones
+            # b = tf.Variable(
+            #     tf.ones((self.state_size,)), name="b")
+            new_state = tf.sigmoid(tf.matmul(inputs, W_x) + tf.matmul(state, W_h) + b)
             ### END YOUR CODE ###
         # For an RNN , the output and state are the same (N.B. this
         # isn't true for an LSTM, though we aren't using one of those in

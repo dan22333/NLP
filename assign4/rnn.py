@@ -315,9 +315,14 @@ class RNNModel(NERModel):
             pred: tf.Tensor of shape (batch_size, max_length, n_classes)
         """
         ### YOUR CODE HERE (~4-6 lines)
-
+        batch_size = tf.shape(x)[0]
+        gru_cell = tf.contrib.rnn.GRUCell(self.config.hidden_size)
+        gru_cell = tf.contrib.rnn.DropoutWrapper(gru_cell, self.dropout_placeholder)
+        initial_state = gru_cell.zero_state(batch_size, dtype=tf.float32)
+        outputs, _ = tf.nn.dynamic_rnn(gru_cell, x, initial_state=initial_state)
+        preds = tf.layers.dense(outputs, self.config.n_classes, 
+            kernel_initializer=tf.contrib.layers.xavier_initializer())
         ### END YOUR CODE
-
         return preds
 
     def add_prediction_op(self):
@@ -419,9 +424,13 @@ class RNNModel(NERModel):
             summary: training records summary.
         """
         records = []
-
         ### YOUR CODE HERE (~5-10 lines)
-
+        records.append(tf.summary.histogram("hist-pred", pred))
+        records.append(tf.summary.scalar("avg-loss", loss))
+        self.probs = tf.boolean_mask(tf.nn.softmax(pred), self.mask_placeholder)
+        ent = self.probs * tf.log(tf.clip_by_value(self.probs, 0.001, 1))
+        ent = -tf.reduce_mean(tf.reduce_sum(ent))
+        records.append(tf.summary.scalar("Entropy", ent))
         ### END YOUR CODE
 
         assert hasattr(self, 'probs'), "self.probs should be set."
@@ -582,7 +591,7 @@ def do_train(args):
                 report.save()
             else:
                 # Save predictions in a text file.
-                output = model.output(session, dev_raw)
+                output = model.output(session, dev_raw)            
                 sentences, labels, predictions = zip(*output)
                 predictions = [[LBLS[l] for l in preds] for preds in predictions]
                 output = zip(sentences, labels, predictions)
@@ -590,9 +599,9 @@ def do_train(args):
                 with open(model.config.conll_output, 'w') as f:
                     write_conll(f, output)
                 with open(model.config.eval_output, 'w') as f:
+                    output = zip(sentences, labels, predictions)
                     for sentence, labels, predictions in output:
                         print_sentence(f, sentence, labels, predictions)
-
 
 def do_evaluate(args):
     config = Config(args)
@@ -601,6 +610,7 @@ def do_evaluate(args):
     embeddings = load_embeddings(args, helper)
     config.embed_size = embeddings.shape[1]
 
+    print("do_evaluate")
     with tf.Graph().as_default():
         logger.info("Building model...",)
         start = time.time()

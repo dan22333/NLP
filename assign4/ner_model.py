@@ -112,7 +112,6 @@ class NERModel(Model):
         for epoch in range(self.config.n_epochs):
             logger.info("Epoch %d out of %d", epoch + 1, self.config.n_epochs)
             prog = Progbar(target=1 + int(len(train_examples) / self.config.batch_size))
-
             for i, minibatch in enumerate(minibatches(train_examples, self.config.batch_size)):
                 data = minibatch[:1] + minibatch[1:2] + minibatch[2:]
                 if writer is None:

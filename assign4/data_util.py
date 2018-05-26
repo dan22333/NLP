@@ -99,7 +99,6 @@ class ModelHelper(object):
         logger.info("Built dictionary for %d features.", len(tok2id))
 
         max_length = max(len(sentence) for sentence, _ in data)
-
         return cls(tok2id, max_length)
 
     def save(self, path):
@@ -117,6 +116,7 @@ class ModelHelper(object):
         # Save the tok2id map.
         with open(os.path.join(path, "features.pkl")) as f:
             tok2id, max_length = pickle.load(f)
+
         return cls(tok2id, max_length)
 
 

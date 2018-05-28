@@ -27,6 +27,8 @@ logger.setLevel(logging.DEBUG)
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 
+
+
 class Config:
     """Holds model hyperparams and data information.
 
@@ -572,7 +574,6 @@ def do_train(args):
     logging.getLogger().addHandler(handler)
 
     report = None #Report(Config.eval_output)
-
     with tf.Graph().as_default():
         logger.info("Building model...",)
         start = time.time()
@@ -582,8 +583,8 @@ def do_train(args):
         init = tf.global_variables_initializer()
         saver = tf.train.Saver()
         writer = tf.summary.FileWriter(config.output_path) if args.summarize else None
-
-        with tf.Session() as session:
+        config = tf.ConfigProto(device_count = {'GPU': 0})
+        with tf.Session(config=config) as session:
             session.run(init)
             model.fit(session, saver, train, dev, writer)
             if report:

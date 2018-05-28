@@ -1,0 +1,6 @@
+2018-05-27 20:44:28,333:INFO: Building model...
+2018-05-27 20:44:30,402:WARNING: From C:\Users\SurfaceBook\Anaconda3\envs\tensorflow\lib\site-packages\tensorflow\contrib\learn\python\learn\datasets\base.py:198: retry (from tensorflow.contrib.learn.python.learn.datasets.base) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use the retry module or similar alternatives.
+2018-05-27 20:44:38,387:INFO: took 10.05 seconds
+2018-05-27 20:44:43,910:INFO: Epoch 1 out of 10

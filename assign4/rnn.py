@@ -426,12 +426,18 @@ class RNNModel(NERModel):
             summary: training records summary.
         """
         records = []
-        ### YOUR CODE HERE (~5-10 lines)
-        records.append(tf.summary.histogram("hist-pred", pred))
+        ### YOUR CODE HERE (~5-10 lines) 
+        records.append(tf.summary.histogram("hist-pred",
+            tf.boolean_mask(pred, self.mask_placeholder)))
         records.append(tf.summary.scalar("avg-loss", loss))
-        self.probs = tf.boolean_mask(tf.nn.softmax(pred), self.mask_placeholder)
+        self.probs = tf.nn.softmax(pred)
+
+        # SUM (y(t)[i] * log(y(t))[i]) where i is the index of class
         ent = self.probs * tf.log(tf.clip_by_value(self.probs, 0.001, 1))
-        ent = -tf.reduce_mean(tf.reduce_sum(ent))
+        ent = tf.reduce_sum(ent,2)
+
+        ent = tf.boolean_mask(ent, self.mask_placeholder)
+        ent = -tf.reduce_mean(ent)
         records.append(tf.summary.scalar("Entropy", ent))
         ### END YOUR CODE
 
@@ -611,7 +617,6 @@ def do_evaluate(args):
     embeddings = load_embeddings(args, helper)
     config.embed_size = embeddings.shape[1]
 
-    print("do_evaluate")
     with tf.Graph().as_default():
         logger.info("Building model...",)
         start = time.time()
@@ -662,7 +667,7 @@ input> Germany 's representative to the European Union 's veterinary committee .
             while True:
                 # Create simple REPL
                 try:
-                    sentence = raw_input("input> ")
+                    sentence = input("input> ")
                     tokens = sentence.strip().split(" ")
                     probs = None
                     for output in model.output(session, [(tokens, ["O"] * len(tokens))], summarize=args.verbose):

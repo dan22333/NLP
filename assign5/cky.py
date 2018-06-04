@@ -71,12 +71,12 @@ def cky(pcfg, sent, non_terminal_to_idx_dict, idx_to_non_terminal_dict):
                             best_s = s
 
                 if pi[i, j, X_ind] > 0:
-                    # print("bp " + str(i) + " " + str(j) + " " + X + " = " + best_Y + " " + best_Z + " " + str(s))
+                    # print("bp " + str(i) + " " + str(j) + " " + X + " = " + best_Y + " " + best_Z + " " + str(best_s))
                     bp[(i, j, X)] = (best_Y, best_Z, best_s)
     
-    key = (0, n - 1, "S")
+    key = (0, n - 1, "ROOT")
     if bp.has_key(key):           
-        tree = gentree_from_bp(pcfg, bp, words, 0, n - 1, "S")
+        tree = gentree_from_bp(pcfg, bp, words, 0, n - 1, "ROOT")
         if tree != None:
             return tree
 

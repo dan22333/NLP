@@ -1,5 +1,6 @@
 from collections import defaultdict
 import random
+import sys
 
 class PCFG(object):
     def __init__(self):
@@ -11,6 +12,78 @@ class PCFG(object):
         assert(isinstance(rhs, list))
         self._rules[lhs].append((rhs, weight))
         self._sums[lhs] += weight
+
+    def to_cnf(self):
+        grammar1 = PCFG()
+        cnf = PCFG()
+         # add a new rule X_a -> a to each terminal a
+        for lhs, rhs_and_weights in self._rules.iteritems():
+            for rhs, weight in rhs_and_weights:
+                if len(rhs) == 1: # A -> terminal 
+                    grammar1._rules[lhs].append((rhs, weight))
+                    grammar1._sums[lhs] += weight
+                    continue
+                for i in range(len(rhs)):
+                    if self.is_terminal(rhs[i]):
+                        a = rhs[i]
+                        X = "X" + "_" + a
+                        grammar1._rules[X] = [([a], 1.0)]
+                        grammar1._sums[X] = [([a], 1.0)]
+
+        # to each rule A -> X1X2.. where Xi can be either non terminal/terminal variable 
+        # replace the occurrences of terminal a with X_a
+        for lhs, rhs_and_weights in self._rules.iteritems():
+            rhs_and_weights1 = []
+            for rhs, weight in rhs_and_weights:
+                if len(rhs) == 1: # A -> terminal
+                    rhs_and_weights1.append((rhs, weight))
+                    continue
+                var_list = []
+                for i in range(len(rhs)):
+                    if self.is_terminal(rhs[i]):
+                        new_var = "X" + "_" + rhs[i]
+                    else:
+                        new_var = rhs[i]
+                    var_list.append(new_var)
+
+                rhs_and_weights1.append((var_list, weight))
+
+            grammar1._rules[lhs] = rhs_and_weights1
+            grammar1._sums[lhs] = self._sums[lhs]
+
+        for lhs, rhs_and_weights in grammar1._rules.iteritems():
+             for rhs, weight in rhs_and_weights:
+                if len(rhs) <= 2:
+                    cnf._rules[lhs].append((rhs, weight))
+                    cnf._sums[lhs] += weight
+                else:
+                    n = len(rhs)
+                    lhs1 = lhs
+                    weight1 = weight
+                    for i in range(0, n - 2):
+                        X = rhs[i]
+                        Y = self.cnf_create_variable(rhs, i + 1)
+                        cnf._rules[lhs1].append(([X, Y], weight))
+                        # print(str(lhs1) + " " + str(cnf._rules[lhs1]))
+                        cnf._sums[lhs1] += weight
+                        weight1 = 1.0
+                        lhs1 = Y
+                    cnf._rules[lhs1].append(([rhs[n - 2], rhs[n - 1]], weight))
+                    cnf._sums[lhs1] += weight
+                    # print(str(lhs1) + " " + str(cnf._rules[lhs1]))
+        return cnf
+
+    def cnf_create_variable(cls, rhs, i):
+        """
+            For example if rhs = NP PP VP PP and i = 1
+            Y = NP|PP.VP.PP
+        """   
+        Y = rhs[0]
+        for j in range(1, len(rhs)):
+            Y += "|" if j == i else "."
+            Y += rhs[j]
+
+        return Y
 
     @classmethod
     def from_file(cls, filename):
@@ -24,6 +97,13 @@ class PCFG(object):
                 w = float(w)
                 grammar.add_rule(l,r,w)
         return grammar
+
+    def print_grammar(self, filename):
+        with open(filename, "w") as fh:
+            for lhs, rhs_and_weights in self._rules.iteritems():
+                for rhs, weight in rhs_and_weights:
+                    fh.write(str(weight) + " " + lhs + " " + " ".join(rhs) + "\n")
+            fh.flush()
 
     @classmethod
     def from_file_assert_cnf(cls, filename):

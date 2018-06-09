@@ -1,10 +1,18 @@
 1.0 Adv very
+1.0 X_it it
+1.0 NP_singl|CC.NP_singl CC NP_singl
+1.0 VP_plur VBP NP
+1.0 VP_plur VBP PP
 1.0 SBAR COMP S
+1.0 SBAR COMP VP
 1.0 X_staff staff
 1.0 NP|Copula.Adj Copula Adj
 1.0 X_chief chief
+1.0 VBP choose
+1.0 Copula is
 1.0 VBZ is
 1.0 VBZ likes
+1.0 VBZ chooses
 1.0 Vi|CC.VP CC VP
 1.0 X_of of
 1.0 Prep with
@@ -12,6 +20,7 @@
 1.0 Prep under
 1.0 Prep in
 1.0 PP Prep NP
+1.0 Noun_plur citizens
 1.0 Adj fine
 1.0 Adj delicious
 1.0 Adj perplexed
@@ -27,10 +36,17 @@
 0.125 ViVt thought
 0.125 ViVt perplexed
 0.125 ViVt worked
-1.0 Copula is
-1.0 X_it it
-1.0 X_is.X_it|X_true.X_that.S.X_? X_true X_is.X_it.X_true|X_that.S.X_?
-1.0 PRP it
+1.0 NP Sally
+1.0 NP it
+1.0 NP NP NP|CC.NP
+1.0 NP Det Noun
+1.0 NP NP PP
+1.0 NP NP SBAR
+1.0 Nouns_plur Adj Noun_plur
+1.0 ROOT S X_.
+1.0 ROOT S X_!
+1.0 ROOT X_is X_is|X_it.X_true.X_that.S.X_?
+1.0 NNP Sally
 1.0 X_that that
 1.0 Noun Adj Noun
 1.0 Noun Adv Noun
@@ -48,19 +64,31 @@
 1.0 Det the
 1.0 Det a
 1.0 Det every
+1.0 PRP it
 1.0 X_is|X_it.X_true.X_that.S.X_? X_it X_is.X_it|X_true.X_that.S.X_?
-1.0 NP Sally
-1.0 NP it
-1.0 NP NP NP|CC.NP
-1.0 NP Det Noun
-1.0 NP NP PP
-1.0 NP NP SBAR
+1.0 NP|CC.NP CC NP
+0.5 S NP_singl VP_singl
+0.5 S NP_plur VP_plur
 1.0 S NP VP
 1.0 S NP NP|Copula.Adj
 1.0 S NP NP|Copula.NP
-1.0 NNP Sally
+1.0 VP_singl VBZ NP
+1.0 VP_singl VBZ PP
+1.0 NP_plur NP_plur PP
+1.0 NP_plur Det Noun_plur
+1.0 NP_plur NP_singl NP_singl|CC.NP_singl
 1.0 X_is.X_it.X_true|X_that.S.X_? X_that X_is.X_it.X_true.X_that|S.X_?
+1.0 Agree NP_singl VP_singl
+1.0 Agree NP_plur VP_plur
 1.0 VP sighed
+0.0125 VP ate
+0.0125 VP wanted
+0.0125 VP kissed
+0.0125 VP understood
+0.0125 VP pickled
+0.0125 VP thought
+0.0125 VP perplexed
+0.0125 VP worked
 1.0 VP Vt Vt|CC.VP
 1.0 VP Vi Vi|CC.VP
 1.0 VP Vt NP
@@ -71,10 +99,11 @@
 1.0 VP VBZ VBG_i
 1.0 X_! !
 1.0 NP|Copula.NP Copula NP
-1.0 ROOT S X_.
-1.0 ROOT S X_!
-1.0 ROOT X_is X_is|X_it.X_true.X_that.S.X_?
+1.0 X_is.X_it|X_true.X_that.S.X_? X_true X_is.X_it.X_true|X_that.S.X_?
 1.0 Vt|CC.VP CC VP
+1.0 NP_singl Sally
+1.0 NP_singl NP_singl PP
+1.0 NP_singl Det Noun
 1.0 X_chief|X_of.X_staff X_of X_staff
 1.0 VBZ|VBG_t.NP VBG_t NP
 1.0 X_. .
@@ -91,4 +120,4 @@
 1.0 Vi sighed
 1.0 X_? ?
 1.0 VBG_t eating
-1.0 NP|CC.NP CC NP
+1.0 NNS citizens

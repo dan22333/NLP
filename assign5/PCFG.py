@@ -2,6 +2,48 @@ from collections import defaultdict
 import random
 import sys
 
+class DG(object): # directed graph
+    def __init__(self):
+        self._edges = defaultdict(list)
+        self._vertices_in_degree = defaultdict(int) # num edges entering to vertex
+        self._vertices_out_degree = defaultdict(int) # num edges exiting vertex
+        self._zero_in_degree_vertices = {} 
+        self._zero_out_degree_vertices = {} 
+        self._vertices = {}
+
+    def add_edge(self, u, v): # u->v 
+        self._edges[u].append(v)
+        self._vertices[u] = True
+        self._vertices[v] = True
+
+        if self._zero_out_degree_vertices.has_key(u):
+            del self._zero_out_degree_vertices[u]
+        if self._zero_in_degree_vertices.has_key(v):
+            del self._zero_in_degree_vertices[v]
+
+        self._vertices_in_degree[v] += 1
+        self._vertices_out_degree[u] += 1
+
+        if u not in self._vertices_in_degree:
+            self._zero_in_degree_vertices[u] = True
+        if v not in self._vertices_out_degree:
+            self._zero_out_degree_vertices[v] = True
+
+        # print("edge {}->{}".format(u, v))
+        # print("in_degree {}".format(self._vertices_in_degree))
+        # print("zero in degree {}".format(self._zero_in_degree_vertices))
+        # print("zero out degree {}".format(self._zero_out_degree_vertices))
+        # print("edges {}".format(self._edges))
+
+    def top_level_vertices(self):
+        return self._zero_in_degree_vertices.keys()
+
+    def is_leaf(self, u):
+        return self._zero_out_degree_vertices.has_key(u)
+
+    def is_top_level_vertex(self, u):
+        return self._zero_in_degree_vertices.has_key(u)
+
 class PCFG(object):
     def __init__(self):
         self._rules = defaultdict(list)
@@ -13,30 +55,61 @@ class PCFG(object):
         self._rules[lhs].append((rhs, weight))
         self._sums[lhs] += weight
 
+    # Unsed for replacing unit rules
+    def traverse_graph(self, grammar, graph, top_lhs, lhs, weight):
+        # print("top_lhs {} lhs {}".format(top_lhs, lhs))
+        for rhs, rhs_weight in self._rules[lhs]:
+            if len(rhs) == 1 and not self.is_preterminal(rhs):
+                mult_weight = weight * rhs_weight 
+                if graph.is_leaf(rhs[0]):
+                    for rhs1, weight1 in self._rules[rhs[0]]:
+                        grammar._rules[top_lhs].append((rhs1, \
+                            mult_weight * weight1 / self._sums[rhs[0]]))
+                else:
+                    assert rhs[0] in graph._edges
+                    self.traverse_graph(grammar, graph, top_lhs, rhs[0], mult_weight / self._sums[lhs])
+
     def to_cnf(self):
         grammar1 = PCFG()
         cnf = PCFG()
-         # add a new rule X_a -> a to each terminal a
+        
+        # replace unit rules
+        unit_rules_graph = DG()
         for lhs, rhs_and_weights in self._rules.iteritems():
             for rhs, weight in rhs_and_weights:
-                if len(rhs) == 1: # A -> terminal 
-                    grammar1._rules[lhs].append((rhs, weight))
-                    grammar1._sums[lhs] += weight
+                if len(rhs) == 1 and not self.is_preterminal(rhs):
+                    unit_rules_graph.add_edge(lhs, rhs[0])
+
+        for lhs in unit_rules_graph.top_level_vertices():
+            self.traverse_graph(grammar1, unit_rules_graph, lhs, lhs, 1.0)
+
+        # print("grammar1 rules {}".format(grammar1._rules))
+
+        # add a new rule X_a -> a to each terminal a
+        for lhs, rhs_and_weights in self._rules.iteritems():
+            for rhs, weight in rhs_and_weights:
+                if len(rhs) == 1:
+                    # if self.is_preterminal(rhs):  # A -> terminal
+                    # grammar1._rules[lhs].append((rhs, weight))
+                    # grammar1._sums[lhs] += weight
                     continue
                 for i in range(len(rhs)):
                     if self.is_terminal(rhs[i]):
                         a = rhs[i]
                         X = "X" + "_" + a
                         grammar1._rules[X] = [([a], 1.0)]
-                        grammar1._sums[X] = [([a], 1.0)]
+                        grammar1._sums[X] = 1.0
+
+        # print("grammar1 rules {}".format(grammar1._rules))
 
         # to each rule A -> X1X2.. where Xi can be either non terminal/terminal variable 
         # replace the occurrences of terminal a with X_a
         for lhs, rhs_and_weights in self._rules.iteritems():
             rhs_and_weights1 = []
             for rhs, weight in rhs_and_weights:
-                if len(rhs) == 1: # A -> terminal
-                    rhs_and_weights1.append((rhs, weight))
+                if len(rhs) == 1: # A -> terminal | B
+                    if self.is_preterminal(rhs):
+                        rhs_and_weights1.append((rhs, weight))
                     continue
                 var_list = []
                 for i in range(len(rhs)):
@@ -48,11 +121,24 @@ class PCFG(object):
 
                 rhs_and_weights1.append((var_list, weight))
 
-            grammar1._rules[lhs] = rhs_and_weights1
+            grammar1._rules[lhs] += rhs_and_weights1
             grammar1._sums[lhs] = self._sums[lhs]
 
+            # update weights due to the removal of unit rules 
+            for rhs, weight in rhs_and_weights:
+                if len(rhs) == 1 and not self.is_preterminal(rhs): # A -> B
+                    if not unit_rules_graph.is_top_level_vertex(lhs):
+                        assert grammar1._rules.has_key(lhs)
+                        grammar1._sums[lhs] -= weight
+                        if grammar1._sums[lhs] <= 0.0:
+                            del grammar1._sums[lhs]
+
+        # print("grammar1 rules {}".format(grammar1._rules))
+        # print("grammar1 sums {}".format(grammar1._sums))
+
+        # replace X -> X1X2X3.. to X -> X1 X1|X2.X3.. and  
         for lhs, rhs_and_weights in grammar1._rules.iteritems():
-             for rhs, weight in rhs_and_weights:
+            for rhs, weight in rhs_and_weights:
                 if len(rhs) <= 2:
                     cnf._rules[lhs].append((rhs, weight))
                     cnf._sums[lhs] += weight

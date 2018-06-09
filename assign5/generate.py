@@ -10,7 +10,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 2:
         if sys.argv[2] == "-n":
             num_of_sents = int(sys.argv[3])
-        elif sys.argv[2] == "-p":
+        elif sys.argv[2] == "-cnf":
             cnf_file = sys.argv[3]
             print_tree = True
             cnf.print_grammar(cnf_file)

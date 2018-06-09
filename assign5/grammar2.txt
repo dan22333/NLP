@@ -47,10 +47,9 @@
 1   S   NP Copula Adj
 1   S   NP Copula NP
 1   VP  Vt CC VP
-1   VP  Vi CC VP
 1	VP	Vt NP
-1   VP  ViVt PP
-1   VP  Vi
+1   VP  Vt PP
+1   VP  Vt
 1   VP  Vt SBAR
 1   VP  VP PP
 1   VP  VBZ VBG_t NP
@@ -73,9 +72,6 @@
 # terminals, like "chief of staff") is called a "preterminal."  Notice 
 # that a preterminal is a special kind of nonterminal.
 
-1   ViVt Vi
-1   ViVt Vt
-
 1   VBZ is
 
 1   VBG_t eating
@@ -88,8 +84,7 @@
 1   Vt  thought
 1   Vt  perplexed
 1   Vt  worked
-
-1   Vi sighed
+1   Vt sighed
  
 1	Det	the
 1	Det	a

@@ -58,7 +58,7 @@
 1   NP  NP CC NP
 1	NP	Det Noun
 1   NP  NNP 
-1   NP PRP
+1   NP  PRP
 1	NP	NP PP
 1   NP  NP SBAR
 1	PP	Prep NP
@@ -77,9 +77,7 @@
 1   ViVt Vt
 
 1   VBZ is
-1   VBZ likes
 
-1   VBG_i sleeping
 1   VBG_t eating
  
 1	Vt	ate
@@ -119,7 +117,6 @@
 1	Prep	in
 
 1   CC and
-1   CC or
 
 1   NNP Sally
 
@@ -127,4 +124,4 @@
 
 1   PRP it
 
-1 Copula is
+1   Copula is

@@ -1,5 +1,3 @@
-is it true that the president ate a sandwich ?
-the floor kissed the delicious chief of staff .
 Sally ate a sandwich .
 Sally and the president wanted and ate a sandwich .
 the president sighed .
@@ -10,4 +8,12 @@ the president worked on every proposal on the desk .
 Sally is lazy .
 Sally is eating a sandwich .
 the president thought that Sally is a sandwich .
-# the president thought that a sandwich sighed a pickle .
+the president thought that a sandwich sighed a pickle .
+
+the pickle kissed the president that ate the sandwich .
+the pickle kissed the sandwich that the president ate .
+the pickle kissed the sandwich that the president thought that Sally ate .
+
+the citizens choose the president .
+the president chooses the chief of staff .
+the president and the chief of staff choose the sandwich .

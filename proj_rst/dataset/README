@@ -1,0 +1,153 @@
+The RST-WSJ-CORPUS directory contains a selection of 385 Wall Street
+Journal articles from the LDC Treebank which have been annotated with
+discourse structure in the framework of Rhetorical Structure Theory
+(RST). In addition, the corpus includes a number of humanly-generated
+extracts and abstracts associated with the original documents.
+
+
+A description of the sub-directories and data follows:
+
+============
+
+
+RSTtrees-WSJ-main-1.0: This directory contains 385 Wall Street Journal
+articles, broken into TRAINING (347 documents) and TEST (38 documents)
+sub-directories. Filenames are of the form:
+
+<docno>: the name of the text file used to create the discourse tree
+
+Note: <docno> can be of two forms:
+
+wsj_####.out (380 documents)
+file# (5 documents)
+
+<docno>.rst/: A directory with three files:
+<docno>.lisp.name
+<docno>.step.name
+## -- a file with an integer as its name
+
+The lisp file contains the discourse structure created by a human
+judge for a text.
+
+The step file contains a list of all the actions that were taken by a
+human judge during the creation of the discourse structure.
+
+The ## file is a temporary file with information about the last action 
+taken by the human judge who built the discourse tree. 
+
+All annotations were produced using a discourse annotation tool that
+can be downloaded from http://www.isi.edu/~marcu/discourse.
+
+The files in the .rst directories are provided only to enable
+interested users to visualize and print in a convenient format the
+discourse annotations in the corpus.
+
+<docno>.dis: a file that contains the manually annotated discourse
+structure of the file <docno>. The .dis files were generated
+automatically from the .step and .lisp files using a mapping
+program. More information about this program is available at
+http://www.isi.edu/~marcu/discourse.  
+
+IMPORTANT NOTE: The .lisp files may contain errors introduced by the
+discourse annotation tool. Please use the .lisp and .step files only
+for visualizing the trees. Use the .dis files for training/testing
+purposes (the mapping program that produced the .dis file was written
+so as to eliminate the errors introduced by the annotation tool).
+
+<docno>.edus: a file corresponding to each discourse tree, with the
+edus (elementary discourse units) listed line by line.
+
+==========
+
+RSTtrees-WSJ-double-1.0: This directory contains the same types of
+files as the subdirectory RSTtrees-WSJ-main-1.0, for 53 documents
+which were double-tagged by a second analyst.
+
+===========
+
+EXT-EDUS-150: Contains informative extracts produced from scratch
+(without reference to an existing abstract) by two analysts for 150
+documents (this larger set includes the 30 documents in the
+subdirectory EXT-EDUS-30). For these extracts, analysts were
+instructed to select a target number of EDUs for the extract, based on
+the square root of the number of EDUs in the document. Files contain
+EDUs by line, with the selected EDUS marked by a * at the beginning of
+the line. Filenames are of the form:
+
+<docno>.bracketed.key.ext.name2.new 
+<docno>.bracketed.key.ext.name3.new
+
+============
+
+EXT-EDUS-30: Contains two sets of short and long extracts for 30
+documents, derived from humanly produced abstracts. These "derived
+extracts" were produced by two analysts as follows: First, the short
+and long abstracts were bracketed into EDUs (see directory
+SumExp-ABS-30 for the humanly produced abstract texts); then, each EDU
+in the abstract was mapped to one or more corresponding EDUs in the
+document to produce the extract.  Files contain EDUs by line, with the
+selected EDUS marked by a * at the beginning of the line.
+
+For the longer, informative derived extract, the filenames are of the
+form:
+
+<docno>.abs.name1 
+<docno>.abs.name2
+
+For the shorter, indicative derived extract, the filenames are of the
+form:
+
+<docno>.shortabs.name1 
+<docno>.shortabs.name2 
+
+In addition, this directory contains one set of long, informative
+extracts for all 30 documents, produced from scratch by selecting the
+important EDUs in the document. The general guidance for producing
+these extracts was the same as for the humanly produced long
+abstracts. (See directory SumExp-ABS-30 for description.) The
+filenames are of the form:
+
+<docno>.ext.name4
+
+===============
+
+SumExp-ABS-30: This directory contains two types of humanly-produced
+abstracts built by a professional abstractor for 30 documents: 1) A
+long, informative abstract, for which the abstractor was instructed to
+capture the essential information conveyed in the document, in no more
+than 25% of the original length; 2) a short, indicative abstract of
+2-3 sentences, written so as to identify the main topic of the
+article. Corresponding to each abstract is a file that has been
+bracketed and numbered by edus. In addition, for each document, there
+is a file containing a set of questions whose answers can be derived
+from the informative abstract. Filenames are of the form:
+
+    <filename>.abs: the longer, informative abstract
+    
+    <filename>.abs-bracketed: bracketed version of the above
+
+    <filename>.short-abs: the shorter, indicative abstract
+
+    <filename>.short-abs-bracketed: bracketed version of the above
+
+    <filename>.que: the questions for the text
+
+==============
+
+SumExp-Texts150: This directory contains a set of files used for
+creating the human extracts:
+
+    <docno>.formatted: a formatted version of the original document,
+for printing and reading purposes.
+
+    <docno>.bracketed: a version of the document which has been
+bracketed and numbered according to the edus derived from the
+discourse tree (with paragraph boundaries preserved). This version was
+used to produce the human extracts.
+
+
+
+
+
+
+

@@ -3,7 +3,9 @@ import copy
 import filecmp
 import glob
 
-dis_files_dir = ".\\*.out.dis"
+from utils import map_to_cluster
+
+dis_files_dir = "*.out.dis"
 
 class Node(object):
 	def __init__(self):
@@ -46,16 +48,17 @@ def binarize_file(infn):
 	binarize_tree(root)
 
 	outfn = infn
-	outfn = "out"
-	outfn += "\\"
+	outfn = "binarized\\"
 	outfn += infn
 	with open(outfn, "w") as ofh:
-		print_tree(ofh, root, 0)
+		print_dis(ofh, root, 0)
 
-	res = filecmp.cmp(infn, outfn)
-	print("compare files in = {} out = {} same = {}".format(infn, outfn, res))
+	# res = filecmp.cmp(infn, outfn)
+	# print("compare files {} {} same = {}".format(infn, outfn, res))
 
-	goldfn = infn.split('.')[0]
+	goldfn = "gold\\"
+	goldfn += infn.split('.')[0]
+
 	with open(goldfn, "w") as ofh:
 		print_gold(ofh, root)
 
@@ -146,8 +149,8 @@ def binarize_tree(node):
 	binarize_tree(l)
 	binarize_tree(r)
 
-# print in .dis fromat
-def print_tree(ofh, node, level):
+# print tree in .dis format
+def print_dis(ofh, node, level):
 	nuc = node._nuclearity
 	rel = node._relation
 	beg = node._span[0]
@@ -167,8 +170,8 @@ def print_tree(ofh, node, level):
 			ofh.write("( {} (span {} {}) (rel2par {})\n".format(nuc, beg, end, rel))
 		l = node._childs[0]
 		r = node._childs[1]
-		print_tree(ofh, l, level + 1)
-		print_tree(ofh, r, level + 1) 
+		print_dis(ofh, l, level + 1)
+		print_dis(ofh, r, level + 1) 
 		print_spaces(ofh, level)
 		ofh.write(")\n")
 
@@ -183,7 +186,7 @@ def print_gold(ofh, node):
 		rel = map_to_cluster(node._relation)
 		beg = node._span[0]
 		end = node._span[1]
-		ofh.write("{} {} {} {}".format(beg, end, nuc[0], rel))
+		ofh.write("{} {} {} {}\n".format(beg, end, nuc[0], rel))
 
 	if node._type != "leaf":
 		l = node._childs[0]
@@ -192,7 +195,7 @@ def print_gold(ofh, node):
 		print_gold(ofh, r)
 
 if __name__ == '__main__':
-	# binarize_file("2353.out.dis")
+	# binarize_file("0600.out.dis")
 	binarize_files(dis_files_dir)
 
 

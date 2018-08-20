@@ -33,7 +33,8 @@ class Node(object):
 		nuc = self._nuclearity
 		rel = self._relation
 		text = self._text
-		print("node: {} {} {} {} {} {}".format(node_type, beg, end, nuc, rel, text))
+		print("node: type= {} span = {},{} nuc={} rel={} text={}".\
+			format(node_type, beg, end, nuc, rel, text))
 
 def binarize_files(path):
 	for fn in glob.glob(path):
@@ -180,10 +181,13 @@ def print_spaces(ofh, level):
 	for i in range(n_spaces):
 		ofh.write(" ")
 
-def print_gold(ofh, node):
+def print_gold(ofh, node, DoMap=True):
 	if node._type != "Root":
 		nuc = node._nuclearity
-		rel = map_to_cluster(node._relation)
+		if DoMap == True:
+			rel = map_to_cluster(node._relation)
+		else:
+			rel = node._relation
 		beg = node._span[0]
 		end = node._span[1]
 		ofh.write("{} {} {} {}\n".format(beg, end, nuc[0], rel))
@@ -191,8 +195,8 @@ def print_gold(ofh, node):
 	if node._type != "leaf":
 		l = node._childs[0]
 		r = node._childs[1]
-		print_gold(ofh, l)
-		print_gold(ofh, r)
+		print_gold(ofh, l, DoMap)
+		print_gold(ofh, r, DoMap)
 
 if __name__ == '__main__':
 	# binarize_file("0600.out.dis")

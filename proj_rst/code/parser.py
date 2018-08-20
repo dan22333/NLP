@@ -1,18 +1,11 @@
 import glob
 import random
 
-from relations_inventory import relations_list
-from relations_inventory import is_multi_nuclear_relation
+from relations_inventory import cluster_rels_list
+from binarization import Node
+from binarization import print_gold
 
-path_to_trainig = "dataset\\TRAINING\\*.out.edus"
-
-class Node(object):
-	def __init__(self):
-		self._nuclearity = 'N' # nuclearity status - either nucleus (N) or satellite (S) 
-		self._relation = 'span' # relation to parent
-		self._left = ''
-		self._right = ''
-		self._EDU = ''
+path_to_training = "dataset\\TRAINING\\*.out.edus"
 
 class Stack(object):
 	def __init__(self):
@@ -38,77 +31,104 @@ class Queue(object):
 		with open(filename) as fh:
 			for line in fh:
 				line = line.strip()
-				queue._EDUS += line
-				# print("{}".format(line))
+				queue._EDUS.append(line)
+			queue._EDUS[::-1]
 		return queue
 
 	def empty(self):
 		return self._EDUS == []
 
 	def pop(self):
-		return self._EDUS.pop(0)
+		return self._EDUS.pop(-1)
 
 class Transition(object):
 	def __init__(self):
-		self._nuclearity = '' # either 'N' or 'S'
-		self._relation = ''
+		self._nuclearity = [] # either 'Nucleus' or 'Satellite' to left and right nodes
+		self._relation = '' # cluster relation
 		self._action = '' # shift or 'reduce'
 
 def parse_files(root):
 	path = root
 	path += "\\"
-	path += path_to_trainig
+	path += path_to_training
 
 	for filename in glob.glob(path):
 		queue = Queue.read_file(filename)
 		print("{}".format(filename))
 		stack = Stack()
-		parse(queue, stack)
+		root = parse(queue, stack)
+
+		predfn = "pred\\"
+		base_name = filename.split('\\')[-1]
+		base_name = base_name.split('.')[0]
+		predfn += base_name
+		with open(predfn, "w") as ofh:
+			print_gold(ofh, root, False)
+
+		goldfn = "gold\\"
+		goldfn += base_name
+
+		n1 = count_lines(predfn) 
+		n2 = count_lines(goldfn)
+		# print("{} {} {} {} equal: {}".format(predfn, n1, goldfn, n2, n1 == n2))
+		
+def count_lines(filename):
+    lines = 0
+    for line in open(filename):
+        lines += 1
+    return lines
 
 def get_transition(queue, stack):
 	transition = Transition()
 
 	if stack.size() < 2:
-		transition._action = 'shift'
+		transition._action = "shift"
 	elif not queue.empty():
-		actions = ['shift', 'reduce']
+		actions = ["shift", "reduce"]
 		ind = random.randint(0,1)
 		transition._action = actions[ind]
 	else:
-		transition._action = 'reduce'
+		transition._action = "reduce"
 		
-	if transition._action == 'shift':
+	if transition._action == "shift":
 		return transition
 
-	nuclearity_options = ['N','S']
-	transition._nuclearity = nuclearity_options[random.randint(0,1)]
-	transition._relation = relations_list[random.randint(0, len(relations_list) - 1)]
+	transition._relation = cluster_rels_list[random.randint(0, len(cluster_rels_list) - 1)]
+	nuclearity_options = ["Nucleus", "Satellite"]
+	transition._nuclearity.append(nuclearity_options[random.randint(0,1)])
+	transition._nuclearity.append(nuclearity_options[random.randint(0,1)])
 
 	return transition
 
-def invert_nuclearity(nuclearity):
-	if nuclearity == 'N':
-		return 'S'
-	return 'N'
-
 def parse(queue, stack):
+	leaf_ind = 1
 	while not queue.empty() or stack.size() != 1:
 		node = Node()
 		transition = get_transition(queue, stack)
-		if transition._action == 'shift':
+		if transition._action == "shift":
 			# create a leaf
-			node._EDU = queue.pop() 
+			node._text = queue.pop()
+			node._type = 'leaf'
+			node._span = [leaf_ind, leaf_ind]
+			leaf_ind += 1
 		else:
-			node._left = stack.pop()
-			node._right = stack.pop()
+			childs = [stack.pop(), stack.pop()]
+			if childs[0]._span[0] > childs[1]._span[1]:
+				childs = childs[::-1]
+			[l, r] = childs
+			node._childs.append(l)
+			node._childs.append(r)
 			node._relation = transition._relation
-
-			if not is_multi_nuclear_relation(node._relation):
-				node._left._nuclearity = transition._nuclearity
-				node._right._nuclearity = invert_nuclearity(transition._nuclearity)
+			l._nuclearity = transition._nuclearity[0]
+			r._nuclearity = transition._nuclearity[1]
+			if queue.empty() and stack.size() == 0:
+				node._type = "Root"
+			else:
+				node._type = "span"
+			node._span = [l._span[0], r._span[1]]
 		stack.push(node)
 
-	return []
+	return stack.pop()
 
 if __name__ == '__main__':
 	parse_files("..")

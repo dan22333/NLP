@@ -58,3 +58,12 @@ def is_mono_nuclearity_nucleus_relation(rel):
 
 def is_multi_nuclear_relation(rel):
 	return multi_nuclear_rels.get(rel)
+
+cluster_rels_list = ["ATTRIBUTION", "BACKGROUND", "CAUSE", "COMPARISON", 
+	"CONDITION", "CONTRAST", "ELABORATION", "ENABLEMENT", "TOPICCOMMENT", 
+	"EVALUATION", "EXPLANATION", "JOINT", "MANNERMEANS", "SUMMARY", "TEMPORAL",
+	"TOPICCHANGE", "SPAN", "SAME-UNIT", "TEXTUALORGANIZATION"]
+
+
+
+  

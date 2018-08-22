@@ -6,6 +6,38 @@ from rst_parser import Queue
 import glob
 
 path_to_dis = "*.out.dis"
+path_to_out = "*.out"
+
+vocab = {}
+edus_table = ['']
+vicab_size = 0
+
+def gen_vocabulary(path):
+	ind = 0
+	for fn in glob.glob(path):
+		print(fn)
+		with open(fn) as fh:
+			sent = fh.readline()
+			sent = sent.strip()
+			print(sent)
+			sent = sent.split()
+			for word in sent:
+				print(word)
+				elems = break_to_word_elems(word)
+				if not vocab.get(word):
+					vocab[word] = ind
+					ind += 1
+	vocab_size = ind
+
+def set_word(word):
+
+def gen_bag_of_words(edu_ind):
+	vec = []
+	for i in range(vocab_size):
+		vec.append(0)
+
+	edu = edus_table[edu_ind]
+	# for word in edus
 
 class Operation(object):
 	def __init__(self):
@@ -98,4 +130,5 @@ def get_nuclear_edu_ind(node):
 	return get_nuclear_edu_ind(r)
 
 if __name__ == '__main__':
-	gen_training_samples(path_to_dis)
+	# gen_training_samples(path_to_dis)
+	gen_vocabulary(path_to_out)

@@ -27,13 +27,13 @@ def gen_training_samples(path):
 
 		stack = []
 		samples = []
-		queue = []
+		queue = [] # queue of EDUS indices
 		for i in range(EDUS.len()):
 			queue.append(i + 1)
 		queue = queue[::-1]
 		
 		gen_training_samples_tree(root, stack, queue, samples, offset)
-		# offset += EDUS.len()
+		offset += EDUS.len()
 
 		outfn = "train_samples\\"
 		outfn += base_name
@@ -58,10 +58,10 @@ def gen_training_samples_tree(node, stack, queue, samples, offset):
 		else:
 			operation._action = gen_action(node, l)
 	
+		operation._state = gen_state(stack, queue, offset)
 		assert(stack.pop(-1) == node._childs[1])
 		assert(stack.pop(-1) == node._childs[0])
 		stack.append(node)
-		operation._state = gen_state(stack, queue, offset)
 
 	if node._type != "Root":
 		samples.append(operation)

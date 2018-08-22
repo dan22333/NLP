@@ -63,6 +63,8 @@ def binarize_file(infn):
 	with open(goldfn, "w") as ofh:
 		print_gold(ofh, root)
 
+	return root
+	
 def build_tree(lines, stack):
 	line = lines.pop(-1)
 	line = line.strip()

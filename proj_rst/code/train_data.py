@@ -3,6 +3,8 @@ from utils import map_to_cluster
 
 import glob
 
+last_words_in_sent_dict = {}
+
 class Sample(object):
 	def __init__(self):
 		self._state = [] # [v1, v2, v3] where v1 & v2 are the elements at the top of the stack
@@ -12,10 +14,9 @@ class Sample(object):
 		print("sample {} {}".format(self._state, self._action))
 
 def gen_train_data(trees, path_to_edus, path_to_out):
-	[vocab, EDUS_table, last_words_in_sent] = gen_vocabulary(path_to_out, path_to_edus)
-	EDUS_bag_of_words = gen_bag_of_words_edus(vocab, EDUS_table, last_words_in_sent)
+	[vocab, EDUS_table] = gen_vocabulary(path_to_out, path_to_edus)
 
-	train_data = []
+	samples = []
 	offset = 0
 	i = 0
 	for fn in glob.glob(path_to_edus): # "*.out.edu"=
@@ -27,7 +28,7 @@ def gen_train_data(trees, path_to_edus, path_to_out):
 				num_edus += 1
 
 		stack = []
-		samples = []
+		samples_in_tree = []
 		queue = [] # queue of EDUS indices
 		for j in range(num_edus):
 			queue.append(j + 1)
@@ -40,11 +41,11 @@ def gen_train_data(trees, path_to_edus, path_to_out):
 		outfn = "train_samples\\"
 		outfn += base_name
 		with open(outfn, "w") as ofh:
-			for sample in samples:
+			for sample in samples_in_tree:
 				ofh.write("{} {}\n".format(sample._state, sample._action))
-				train_data.append(sample)
+				samples.append(sample)
 
-	return [train_data, EDUS_table, EDUS_bag_of_words, vocab]
+	return [samples, EDUS_table, vocab]
 					
 def gen_train_data_tree(node, stack, queue, samples, offset):
 	# node.print_info()
@@ -102,6 +103,12 @@ def get_nuclear_edu_ind(node):
 		return get_nuclear_edu_ind(l)
 	return get_nuclear_edu_ind(r)
 
+def vocab_get(vocab, word):
+		return vocab.get(word.lower())
+
+def vocab_set(vocab, word, ind):
+	vocab[word.lower()] = ind
+
 def gen_vocabulary(path_to_out, path_to_edus):
 	vocab = {}
 	EDUS_table = ['']
@@ -118,7 +125,7 @@ def gen_vocabulary(path_to_out, path_to_edus):
 				for word in sent:
 					last = word == sent[-1]
 					if last:
-						last_words_in_sent[word] = 1
+						last_words_in_sent_dict[word] = 1
 
 	num_edus = 0
 	for fn in glob.glob(path_to_edus):
@@ -132,28 +139,17 @@ def gen_vocabulary(path_to_out, path_to_edus):
 				# print("edu aft split = {}".format(edu))
 				for word in edu:
 					# print("word = {}".format(word))
-					last = last_words_in_sent.get(word)
+					last = last_words_in_sent_dict.get(word)
 					elems = break_to_word_elems(word, last)
 					# print("elem = {}".format(elems))
 					for elem in elems: 
-						if not vocab.get(elem):
-							vocab[elem] = ind
+						if not vocab_get(vocab, elem):
+							vocab_set(vocab, elem, ind)
 							ind += 1
 
-	return [vocab, EDUS_table, last_words_in_sent]
+	return [vocab, EDUS_table]
 
-def gen_bag_of_words_edus(vocab, EDUS_table, last_words_in_sent):
-	# for word, _ in vocab.iteritems():
-	# print(word)
-
-	EDUS_bag_of_words = []
-	for i in range(len(EDUS_table)):
-		v = gen_bag_of_words(vocab, EDUS_table, i, last_words_in_sent)
-		EDUS_bag_of_words.append(v)
-
-	return EDUS_bag_of_words
-
-def gen_bag_of_words(vocab, EDUS_table, edu_ind, last_words_in_sent):
+def gen_bag_of_words(vocab, EDUS_table, edu_ind):
 	zeros = []
 	for i in range(len(vocab)):
 		zeros.append(0)
@@ -166,10 +162,10 @@ def gen_bag_of_words(vocab, EDUS_table, edu_ind, last_words_in_sent):
 	# print("edu {}".format(edu))
 	edu = edu.split()
 	for word in edu:
-		last = last_words_in_sent.get(word) != None
+		last = last_words_in_sent_dict.get(word) != None
 		elems = break_to_word_elems(word, last)
 		for elem in elems: 
-			ind = vocab.get(elem)
+			ind = vocab_get(vocab, elem)
 			# print(elem)
 			assert(ind != None)
 			vec[ind] += 1
@@ -199,7 +195,7 @@ def break_to_word_elems_do(word):
 	if mid[0] in ['"', '(', '`']:
 		elems.append(word[0])
 		mid = word[1:]
-	if mid[-1] in ['\'', '"',')','!','?',',',':']:
+	if mid[-1] in ['\'', '"',')','!','?',',',':','-']:
 		suf = mid[-1]
 		mid = mid[0:-1]
 	if mid == "'s" or mid[-2:].lower() == "'s":
@@ -232,3 +228,4 @@ def break_to_word_elems_do(word):
 	if suf != '':
 		elems.append(suf)
 	return elems
+

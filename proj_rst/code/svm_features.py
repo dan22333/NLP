@@ -4,7 +4,7 @@ from relations_inventory import action_to_ind_map
 
 import random
 
-def svm_extract_features(trees, samples, EDUS_table, vocab, train_subset_size=500):
+def svm_extract_features(samples, EDUS_table, vocab, train_subset_size=500):
 
 	x_features = []
 	y_outs = []

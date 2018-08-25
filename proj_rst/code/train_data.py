@@ -115,7 +115,7 @@ def gen_vocabulary(path_to_out, path_to_edus):
 				if sent == '':
 					continue
 				sent = sent.split()
-			 	for word in sent:
+				for word in sent:
 					last = word == sent[-1]
 					if last:
 						last_words_in_sent[word] = 1
@@ -130,7 +130,7 @@ def gen_vocabulary(path_to_out, path_to_edus):
 				# print("edu {}".format(sent))
 				edu = edu.split()
 				# print("edu aft split = {}".format(edu))
-			 	for word in edu:
+				for word in edu:
 					# print("word = {}".format(word))
 					last = last_words_in_sent.get(word)
 					elems = break_to_word_elems(word, last)

@@ -7,4 +7,4 @@ from train_data import gen_train_data
 if __name__ == '__main__':
 	trees = preprocess("*.out.dis")
 	[train_data, EDUS_table, vocab] = gen_train_data(trees, "*.out.edus", "*.out")
-	[x_features, y_outs] = svm_extract_features(train_data, EDUS_table, vocab)
+	[x_features, y_labels] = svm_extract_features(train_data, EDUS_table, vocab)

@@ -6,9 +6,10 @@ import random
 
 def svm_extract_features(samples, EDUS_table, vocab, train_subset_size=500):
 
-	x_features = []
-	y_outs = []
+	x_features = [] # vectorized features kist
+	y_labels = []
 	
+	print("n_examples = {} , n_features = {}".format(len(samples), len(vocab)))
 	for i in range(train_subset_size):
 		sample_ind = random.randint(0, len(samples))
 		vec_concat = []
@@ -16,7 +17,7 @@ def svm_extract_features(samples, EDUS_table, vocab, train_subset_size=500):
 			vec_concat.append(gen_bag_of_words(vocab, EDUS_table, edu_ind))
 		x_features.append(vec_concat)
 		act_ind = action_to_ind_map[samples[sample_ind]._action]
-		y_outs.append(act_ind)
-	return [x_features, y_outs]
+		y_labels.append(act_ind)
+	return [x_features, y_labels]
 
 		

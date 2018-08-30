@@ -40,26 +40,27 @@ class TreeInfo(object):
 		self._fname = '' # file name
 		self._root = ''
 
-def preprocess(path, print_bin=True, print_serial=True, serial_files_dir="gold"):
+def preprocess(path, dis_files_dir="TRAINING", bin_files_dir="binarized", ser_files_dir="gold"):
 	build_parser_action_to_ind_mapping()
 
-	trees = binarize_files(path, print_bin)
-	if print_serial:
-		print_serial_files(path, trees, serial_files_dir)
+	trees = binarize_files(path, dis_files_dir, bin_files_dir)
+	print_serial_files(path, trees, ser_files_dir)
 	return trees
 
-def binarize_files(base_path, print_bin):
+def binarize_files(base_path, dis_files_dir, bin_files_dir):
 	trees = []
 	path = base_path
-	path += "\\TRAINING\\*.dis"
+	path += "\\"
+	path += dis_files_dir
+	path += "\\*.dis"
 	for fn in glob.glob(path):
-		trees.append(binarize_file(fn, print_bin))
+		trees.append(binarize_file(fn, bin_files_dir))
 	
 	return trees
 
 # return the root of the binarized file
 
-def binarize_file(infn, print_bin):
+def binarize_file(infn, bin_files_dir):
 	stack = []
 	with open(infn, "r") as ifh: # .dis file
 		lines = ifh.readlines()
@@ -67,13 +68,14 @@ def binarize_file(infn, print_bin):
 
 	binarize_tree(root)
 
-	if print_bin:
-		outfn = infn.split("\\")[0]
-		outfn += "\\binarized\\"
-		outfn += extract_base_name_file(infn)
-		outfn += ".out.dis"
-		with open(outfn, "w") as ofh:
-			print_dis_file(ofh, root, 0)
+	outfn = infn.split("\\")[0]
+	outfn += "\\"
+	outfn += bin_files_dir
+	outfn += "\\"
+	outfn += extract_base_name_file(infn)
+	outfn += ".out.dis"
+	with open(outfn, "w") as ofh:
+		print_dis_file(ofh, root, 0)
 
 	# res = filecmp.cmp(infn, outfn)
 	# print("compare files {} {} same = {}".format(infn, outfn, res))
@@ -210,20 +212,23 @@ def print_spaces(ofh, level):
 
 # print serial tree files
 
-def print_serial_files(path, trees, subdir):
+def print_serial_files(path, trees, outdir):
 	for tree in trees:
 		outfn = path
 		outfn += "\\"
-		outfn += subdir
+		outfn += outdir
 		outfn += "\\"
 		outfn += tree._fname
 		with open(outfn, "w") as ofh:
 			print_serial_file(ofh, tree._root)
 
-def print_serial_file(ofh, node):
+def print_serial_file(ofh, node, doMap=True):
 	if node._type != "Root":
 		nuc = node._nuclearity
-		rel = map_to_cluster(node._relation)
+		if doMap == True:
+			rel = map_to_cluster(node._relation)
+		else:
+			rel = node._relation
 		beg = node._span[0]
 		end = node._span[1]
 		ofh.write("{} {} {} {}\n".format(beg, end, nuc[0], rel))
@@ -231,8 +236,8 @@ def print_serial_file(ofh, node):
 	if node._type != "leaf":
 		l = node._childs[0]
 		r = node._childs[1]
-		print_serial_file(ofh, l)
-		print_serial_file(ofh, r)
+		print_serial_file(ofh, l, doMap)
+		print_serial_file(ofh, r, doMap)
 
 if __name__ == '__main__':
 	# binarize_file("0600.out.dis")

@@ -1,11 +1,10 @@
 import glob
 import random
 
-from relations_inventory import cluster_rels_list
-from binarization import Node
-from binarization import print_gold
-
-path_to_training = "dataset\\TRAINING\\*.out.edus"
+from preprocess import Node
+from preprocess import print_serial_file
+from preprocess import extract_base_name_file
+from evaluation import eval
 
 class Stack(object):
 	def __init__(self):
@@ -46,42 +45,76 @@ class Queue(object):
 
 class Transition(object):
 	def __init__(self):
-		self._nuclearity = [] # either 'Nucleus' or 'Satellite' to left and right nodes
+		self._nuclearity = [] # <nuc>, <nuc>
 		self._relation = '' # cluster relation
 		self._action = '' # shift or 'reduce'
 
-def parse_files(root):
-	path = root
+def parse_files(base_path, edus_files_dir="DEV", gold_files_dir="dev_gold"):
+	path = base_path
 	path += "\\"
-	path += path_to_training
+	path += edus_files_dir
+	path += "\\*.out.edus"
 
-	for filename in glob.glob(path):
-		queue = Queue.read_file(filename)
-		print("{}".format(filename))
+	for fn in glob.glob(path):
+		queue = Queue.read_file(fn)
 		stack = Stack()
-		root = parse(queue, stack)
+		root = parse_file(queue, stack)
 
-		predfn = "pred\\"
-		base_name = filename.split('\\')[-1]
-		base_name = base_name.split('.')[0]
+		predfn = base_path
+		predfn += "\\pred\\"
+		base_name = extract_base_name_file(fn)
 		predfn += base_name
 		with open(predfn, "w") as ofh:
-			print_gold(ofh, root, False)
+			print_serial_file(ofh, root, False)
 
-		goldfn = "gold\\"
-		goldfn += base_name
-
+	eval(gold_files_dir, "pred")
 		# n1 = count_lines(predfn) 
 		# n2 = count_lines(goldfn)
 		# print("{} {} {} {} equal: {}".format(predfn, n1, goldfn, n2, n1 == n2))
-		
+
+def parse_file(queue, stack):
+	leaf_ind = 1
+	while not queue.empty() or stack.size() != 1:
+		node = Node()
+		node._relation = 'SPAN'
+		transition = most_freq_baseline(queue, stack)
+		if transition._action == "shift":
+			# create a leaf
+			node._text = queue.pop()
+			node._type = 'leaf'
+			node._span = [leaf_ind, leaf_ind]
+			leaf_ind += 1
+		else:
+			r = stack.pop()
+			l = stack.pop()
+			node._childs.append(l)
+			node._childs.append(r)
+			l._nuclearity = transition._nuclearity[0]
+			r._nuclearity = transition._nuclearity[1]
+			if l._nuclearity == "Satellite":
+				l._relation = transition._relation
+			elif r._nuclearity == "Satellite":
+				r._relation = transition._relation	
+			else:
+				l._relation = transition._relation
+				r._relation = transition._relation
+
+			if queue.empty() and stack.size() == 0:
+				node._type = "Root"
+			else:
+				node._type = "span"
+			node._span = [l._span[0], r._span[1]]
+		stack.push(node)
+
+	return stack.pop()
+
 def count_lines(filename):
     lines = 0
     for line in open(filename):
         lines += 1
     return lines
 
-def gen_most_freq_baseline(queue, stack):
+def most_freq_baseline(queue, stack):
 	transition = Transition()
 
 	if stack.size() < 2:
@@ -101,36 +134,6 @@ def gen_most_freq_baseline(queue, stack):
 	transition._nuclearity.append("Satellite")
 
 	return transition
-
-def parse(queue, stack):
-	leaf_ind = 1
-	while not queue.empty() or stack.size() != 1:
-		node = Node()
-		transition = get_transition(queue, stack)
-		if transition._action == "shift":
-			# create a leaf
-			node._text = queue.pop()
-			node._type = 'leaf'
-			node._span = [leaf_ind, leaf_ind]
-			leaf_ind += 1
-		else:
-			childs = [stack.pop(), stack.pop()]
-			if childs[0]._span[0] > childs[1]._span[1]:
-				childs = childs[::-1]
-			[l, r] = childs
-			node._childs.append(l)
-			node._childs.append(r)
-			node._relation = transition._relation
-			l._nuclearity = transition._nuclearity[0]
-			r._nuclearity = transition._nuclearity[1]
-			if queue.empty() and stack.size() == 0:
-				node._type = "Root"
-			else:
-				node._type = "span"
-			node._span = [l._span[0], r._span[1]]
-		stack.push(node)
-
-	return stack.pop()
 
 if __name__ == '__main__':
 	parse_files("..")

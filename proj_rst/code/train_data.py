@@ -1,4 +1,5 @@
 from preprocess import Node
+from preprocess import TreeInfo
 from utils import map_to_cluster
 
 import glob
@@ -13,14 +14,19 @@ class Sample(object):
 	def print_info(self):
 		print("sample {} {}".format(self._state, self._action))
 
-def gen_train_data(trees, path_to_edus, path_to_out):
-	[vocab, EDUS_table] = gen_vocabulary(path_to_out, path_to_edus)
+def gen_train_data(trees, path, print_data=True):
+	[vocab, EDUS_table] = gen_vocabulary(path)
 
 	samples = []
 	offset = 0
 	i = 0
-	for fn in glob.glob(path_to_edus): # "*.out.edu"=
-		root = trees[i]
+
+	for tree in trees:
+		fn = path 
+		fn += "\\TRAINING\\"
+		fn += tree._fname
+		fn += ".out.edus"
+		root = tree._root
 		i += 1
 		num_edus = 0
 		with open(fn) as fh:
@@ -28,22 +34,23 @@ def gen_train_data(trees, path_to_edus, path_to_out):
 				num_edus += 1
 
 		stack = []
-		samples_in_tree = []
+		tree_samples = []
 		queue = [] # queue of EDUS indices
 		for j in range(num_edus):
 			queue.append(j + 1)
 
 		queue = queue[::-1]
-		gen_train_data_tree(root, stack, queue, samples, offset)
+		gen_train_data_tree(root, stack, queue, tree_samples, offset)
 		offset += num_edus
 
-		base_name = fn.split('.')[0]
-		outfn = "train_samples\\"
-		outfn += base_name
-		with open(outfn, "w") as ofh:
-			for sample in samples_in_tree:
-				ofh.write("{} {}\n".format(sample._state, sample._action))
-				samples.append(sample)
+		if print_data:
+			outfn = path
+			outfn += "\\train_data\\"
+			outfn += tree._fname
+			with open(outfn, "w") as ofh:
+				for sample in tree_samples:
+					ofh.write("{} {}\n".format(sample._state, sample._action))
+					samples.append(sample)
 
 	return [samples, EDUS_table, vocab]
 					
@@ -73,11 +80,13 @@ def gen_train_data_tree(node, stack, queue, samples, offset):
 		samples.append(sample)
 
 def gen_action(parent, child):
-	left_right = "LEFT" if parent._childs[0] == child else "RIGHT"
 	action = "REDUCE-"
-	action += map_to_cluster(child._relation)
+	nuc = "NN"
+	if child._nuclearity == "Satellite":
+		nuc = "SN" if parent._childs[0] == child else "NS"
+	action += nuc
 	action += "-"
-	action += left_right
+	action += map_to_cluster(child._relation)
 	return action
 		
 def gen_state(stack, queue, offset):
@@ -104,16 +113,19 @@ def get_nuclear_edu_ind(node):
 	return get_nuclear_edu_ind(r)
 
 def vocab_get(vocab, word):
-		return vocab.get(word.lower())
+	return vocab.get(word.lower())
 
 def vocab_set(vocab, word, ind):
 	vocab[word.lower()] = ind
 
-def gen_vocabulary(path_to_out, path_to_edus):
+def gen_vocabulary(base_path):
 	vocab = {}
 	EDUS_table = ['']
 	last_words_in_sent = {}
 	ind = 0
+
+	path_to_out = base_path
+	path_to_out += "\\TRAINING\\*.out"
 
 	for fn in glob.glob(path_to_out):
 		with open(fn) as fh:
@@ -128,13 +140,16 @@ def gen_vocabulary(path_to_out, path_to_edus):
 						last_words_in_sent_dict[word] = 1
 
 	num_edus = 0
+	path_to_edus = base_path
+	path_to_edus += "\\TRAINING\\*.edus"
+
 	for fn in glob.glob(path_to_edus):
 		# print("fn = {}".format(fn)) 
 		with open(fn) as fh:
 			for edu in fh:
 				edu = edu.strip()
 				EDUS_table.append(edu)
-				# print("edu {}".format(sent))
+				# print("edu {}".format(edu))
 				edu = edu.split()
 				# print("edu aft split = {}".format(edu))
 				for word in edu:
@@ -180,7 +195,7 @@ def break_to_word_elems(word, last):
 		elems.append(word[-1])
 		return elems
 	# strip other suffices 
-	elif word[-1] in [')','"',"\'"]:
+	elif word[-1] in [')','"',"\'","`"]:
 		elems = []
 		if len(word) > 1:
 			elems = break_to_word_elems_do(word[0:-1])
@@ -195,6 +210,8 @@ def break_to_word_elems_do(word):
 	if mid[0] in ['"', '(', '`']:
 		elems.append(word[0])
 		mid = word[1:]
+		if mid == '':
+			return elems
 	if mid[-1] in ['\'', '"',')','!','?',',',':','-']:
 		suf = mid[-1]
 		mid = mid[0:-1]

@@ -6,7 +6,7 @@ import random
 
 def svm_extract_features(samples, EDUS_table, vocab, train_subset_size=500):
 
-	x_features = [] # vectorized features kist
+	x_features = [] # vectorized features list
 	y_labels = []
 	
 	print("n_examples = {} , n_features = {}".format(len(samples), len(vocab)))

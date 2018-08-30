@@ -71,8 +71,8 @@ def parse_files(root):
 		goldfn = "gold\\"
 		goldfn += base_name
 
-		n1 = count_lines(predfn) 
-		n2 = count_lines(goldfn)
+		# n1 = count_lines(predfn) 
+		# n2 = count_lines(goldfn)
 		# print("{} {} {} {} equal: {}".format(predfn, n1, goldfn, n2, n1 == n2))
 		
 def count_lines(filename):
@@ -81,7 +81,7 @@ def count_lines(filename):
         lines += 1
     return lines
 
-def get_transition(queue, stack):
+def gen_most_freq_baseline(queue, stack):
 	transition = Transition()
 
 	if stack.size() < 2:
@@ -96,10 +96,9 @@ def get_transition(queue, stack):
 	if transition._action == "shift":
 		return transition
 
-	transition._relation = cluster_rels_list[random.randint(0, len(cluster_rels_list) - 1)]
-	nuclearity_options = ["Nucleus", "Satellite"]
-	transition._nuclearity.append(nuclearity_options[random.randint(0,1)])
-	transition._nuclearity.append(nuclearity_options[random.randint(0,1)])
+	transition._relation = 'ELABORATION'
+	transition._nuclearity.append("Nucleus")
+	transition._nuclearity.append("Satellite")
 
 	return transition
 

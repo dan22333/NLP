@@ -4,6 +4,7 @@ import filecmp
 import glob
 
 from utils import map_to_cluster
+from relations_inventory import build_parser_action_to_ind_mapping
 
 class Node(object):
 	def __init__(self):
@@ -34,39 +35,60 @@ class Node(object):
 		print("node: type= {} span = {},{} nuc={} rel={} text={}".\
 			format(node_type, beg, end, nuc, rel, text))
 
-def preprocess(path):
-	return binarize_files(path)
+class TreeInfo(object):
+	def __init__(self):
+		self._fname = '' # file name
+		self._root = ''
 
-def binarize_files(path):
-	trees = []
-	for fn in glob.glob(path):
-		trees.append(binarize_file(fn))
+def preprocess(path, print_bin=True, print_serial=True, serial_files_dir="gold"):
+	build_parser_action_to_ind_mapping()
+
+	trees = binarize_files(path, print_bin)
+	if print_serial:
+		print_serial_files(path, trees, serial_files_dir)
 	return trees
 
-def binarize_file(infn):
+def binarize_files(base_path, print_bin):
+	trees = []
+	path = base_path
+	path += "\\TRAINING\\*.dis"
+	for fn in glob.glob(path):
+		trees.append(binarize_file(fn, print_bin))
+	
+	return trees
+
+# return the root of the binarized file
+
+def binarize_file(infn, print_bin):
 	stack = []
-	with open(infn, "r") as ifh:
+	with open(infn, "r") as ifh: # .dis file
 		lines = ifh.readlines()
 		root = build_tree(lines[::-1], stack)
 
 	binarize_tree(root)
 
-	outfn = infn
-	outfn = "binarized\\"
-	outfn += infn
-	with open(outfn, "w") as ofh:
-		print_dis(ofh, root, 0)
+	if print_bin:
+		outfn = infn.split("\\")[0]
+		outfn += "\\binarized\\"
+		outfn += extract_base_name_file(infn)
+		outfn += ".out.dis"
+		with open(outfn, "w") as ofh:
+			print_dis_file(ofh, root, 0)
 
 	# res = filecmp.cmp(infn, outfn)
 	# print("compare files {} {} same = {}".format(infn, outfn, res))
 
-	goldfn = "gold\\"
-	goldfn += infn.split('.')[0]
+	tree_info = TreeInfo()
+	tree_info._root = root
+	tree_info._fname = extract_base_name_file(infn)
+	return tree_info
 
-	with open(goldfn, "w") as ofh:
-		print_gold(ofh, root)
+def extract_base_name_file(fn):
+	base_name = fn.split("\\")[-1]
+	base_name = base_name.split('.')[0]
+	return base_name
 
-	return root
+# lines are the content of "out.dis" file
 
 def build_tree(lines, stack):
 	line = lines.pop(-1)
@@ -156,7 +178,7 @@ def binarize_tree(node):
 	binarize_tree(r)
 
 # print tree in .dis format
-def print_dis(ofh, node, level):
+def print_dis_file(ofh, node, level):
 	nuc = node._nuclearity
 	rel = node._relation
 	beg = node._span[0]
@@ -176,8 +198,8 @@ def print_dis(ofh, node, level):
 			ofh.write("( {} (span {} {}) (rel2par {})\n".format(nuc, beg, end, rel))
 		l = node._childs[0]
 		r = node._childs[1]
-		print_dis(ofh, l, level + 1)
-		print_dis(ofh, r, level + 1) 
+		print_dis_file(ofh, l, level + 1)
+		print_dis_file(ofh, r, level + 1) 
 		print_spaces(ofh, level)
 		ofh.write(")\n")
 
@@ -186,13 +208,22 @@ def print_spaces(ofh, level):
 	for i in range(n_spaces):
 		ofh.write(" ")
 
-def print_gold(ofh, node, DoMap=True):
+# print serial tree files
+
+def print_serial_files(path, trees, subdir):
+	for tree in trees:
+		outfn = path
+		outfn += "\\"
+		outfn += subdir
+		outfn += "\\"
+		outfn += tree._fname
+		with open(outfn, "w") as ofh:
+			print_serial_file(ofh, tree._root)
+
+def print_serial_file(ofh, node):
 	if node._type != "Root":
 		nuc = node._nuclearity
-		if DoMap == True:
-			rel = map_to_cluster(node._relation)
-		else:
-			rel = node._relation
+		rel = map_to_cluster(node._relation)
 		beg = node._span[0]
 		end = node._span[1]
 		ofh.write("{} {} {} {}\n".format(beg, end, nuc[0], rel))
@@ -200,8 +231,8 @@ def print_gold(ofh, node, DoMap=True):
 	if node._type != "leaf":
 		l = node._childs[0]
 		r = node._childs[1]
-		print_gold(ofh, l, DoMap)
-		print_gold(ofh, r, DoMap)
+		print_serial_file(ofh, l)
+		print_serial_file(ofh, r)
 
 if __name__ == '__main__':
 	# binarize_file("0600.out.dis")

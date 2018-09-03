@@ -1,8 +1,14 @@
 from preprocess import Node
 from preprocess import TreeInfo
 from utils import map_to_cluster
+from glove import loadWordVectors
+from relations_inventory import action_to_ind_map
 
 import glob
+import copy
+import numpy as np
+
+print_vocab = False
 
 last_words_in_sent_dict = {}
 
@@ -17,9 +23,14 @@ class Sample(object):
 def gen_train_data(trees, path, print_data=True):
 	[vocab, EDUS_table] = gen_vocabulary(path)
 
+	if print_vocab:
+		for key, val in vocab.items():
+			print("{} {}".format(key, val))
+
 	samples = []
+	sample_ind_to_tree = []
 	offset = 0
-	i = 0
+	max_edus = 0
 
 	for tree in trees:
 		fn = path 
@@ -27,7 +38,8 @@ def gen_train_data(trees, path, print_data=True):
 		fn += tree._fname
 		fn += ".out.edus"
 		root = tree._root
-		i += 1
+		tree._offset = offset
+
 		num_edus = 0
 		with open(fn) as fh:
 			for line in fh:
@@ -41,7 +53,11 @@ def gen_train_data(trees, path, print_data=True):
 
 		queue = queue[::-1]
 		gen_train_data_tree(root, stack, queue, tree_samples, offset)
+		tree._samples = copy.copy(tree_samples)
 		offset += num_edus
+
+		if num_edus > max_edus:
+			max_edus = num_edus
 
 		if print_data:
 			outfn = path
@@ -51,8 +67,14 @@ def gen_train_data(trees, path, print_data=True):
 				for sample in tree_samples:
 					ofh.write("{} {}\n".format(sample._state, sample._action))
 					samples.append(sample)
+					sample_ind_to_tree.append(tree)
 
-	return [samples, EDUS_table, vocab]
+	y_all = [action_to_ind_map[samples[i]._action] for i in range(len(samples))]
+	y_all = np.unique(y_all)
+
+	wordVectors = loadWordVectors(vocab)
+
+	return [samples, y_all, EDUS_table, sample_ind_to_tree, vocab, wordVectors, max_edus]
 					
 def gen_train_data_tree(node, stack, queue, samples, offset):
 	# node.print_info()
@@ -97,9 +119,9 @@ def gen_state(stack, queue, offset):
 		ind3 = offset + queue[-1]
 
 	if len(stack) > 0:
-		ind1 = offset + get_nuclear_edu_ind(stack[-1])
+		ind1 = offset + get_nuclear_edu_ind(stack[-1]) # right son
 		if len(stack) > 1:
-			ind2 = offset + get_nuclear_edu_ind(stack[-2])
+			ind2 = offset + get_nuclear_edu_ind(stack[-2]) # left son
 
 	return [ind1, ind2, ind3]
 
@@ -164,6 +186,19 @@ def gen_vocabulary(base_path):
 
 	return [vocab, EDUS_table]
 
+def split_edu_to_tokens(vocab, EDUS_table, edu_ind):
+	edu = EDUS_table[edu_ind]
+	edu = edu.split()
+	tokens = []
+	for word in edu:
+		last = last_words_in_sent_dict.get(word) != None
+		elems = break_to_word_elems(word, last)
+		for elem in elems: 
+			ind = vocab_get(vocab, elem)
+			assert(ind != None)
+			tokens.append(elem)
+	return tokens
+
 def gen_bag_of_words(vocab, EDUS_table, edu_ind):
 	zeros = []
 	for i in range(len(vocab)):
@@ -173,17 +208,10 @@ def gen_bag_of_words(vocab, EDUS_table, edu_ind):
 		return zeros
 
 	vec = zeros
-	edu = EDUS_table[edu_ind]
-	# print("edu {}".format(edu))
-	edu = edu.split()
-	for word in edu:
-		last = last_words_in_sent_dict.get(word) != None
-		elems = break_to_word_elems(word, last)
-		for elem in elems: 
-			ind = vocab_get(vocab, elem)
-			# print(elem)
-			assert(ind != None)
-			vec[ind] += 1
+	tokens = split_edu_to_tokens(vocab, EDUS_table, edu_ind)
+	for token in tokens:
+		ind = vocab_get(vocab, token)
+		vec[ind] += 1
 	return vec	
 
 def break_to_word_elems(word, last):

@@ -9,13 +9,13 @@ svm_max_iter = 3000
 svm_verbose = False
 
 def mini_batch_linear_model(trees, sample_ind_to_tree, samples, y_all, EDUS_table, vocab, \
-	wordVectors, max_edus, iterations=200, subset_size=500, print_every=10):
+	wordVectors, max_edus, iterations=500, subset_size=500, print_every=10):
 	print("n_samples = {} , vocab size = {} , n_classes = {}".\
 		format(len(samples), len(vocab), len(y_all)))
 	classes = y_all
 	print(classes)
 
-	clf = linear_model.SGDClassifier(max_iter=1000, tol=1e-3, verbose=True)
+	clf = linear_model.SGDClassifier(max_iter=2000, tol=1e-7, learning_rate='constant', eta0=0.1)
 	print(clf)
 
 	for i in range(iterations):
@@ -29,9 +29,6 @@ def mini_batch_linear_model(trees, sample_ind_to_tree, samples, y_all, EDUS_tabl
 		classes = None
 
 	for i in range(iterations):
-		if i > 0 and i % print_every == 0:
-			print("mini batch iter = {}".format(i))
-
 		[x_vecs, y_labels] = extract_features(trees, sample_ind_to_tree, samples, \
 			EDUS_table, vocab, wordVectors, subset_size, max_edus)
 
@@ -39,7 +36,7 @@ def mini_batch_linear_model(trees, sample_ind_to_tree, samples, y_all, EDUS_tabl
 		pred = [y_all[np.argmax(elem)] for elem in dec]
 
 		n_match = np.sum([pred[i] == y_labels[i] for i in range(len(pred))])
-		print("num matches = {}".format(n_match))
+		print("num matches = {}".format(n_match / len(pred) * 100))
 
 	return clf
 

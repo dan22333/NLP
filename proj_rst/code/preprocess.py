@@ -39,6 +39,8 @@ class TreeInfo(object):
 	def __init__(self):
 		self._fname = '' # file name
 		self._root = ''
+		self._offset = 0
+		self._samples = []
 
 def preprocess(path, dis_files_dir="TRAINING", bin_files_dir="binarized", ser_files_dir="gold"):
 	build_parser_action_to_ind_mapping()

@@ -11,6 +11,7 @@ from train_data import gen_state
 from model import neural_net_predict
 from model import linear_predict
 from relations_inventory import ind_to_action_map
+import torch
 
 class Stack(object):
 	def __init__(self):
@@ -59,12 +60,12 @@ class Transition(object):
 		s = self._action
 		if s != 'shift':
 			s += "-"
-			s += self._nuclearity[:][0]
+			s += ''.join([elem[0] for elem in self._nuclearity])
 			s += "-"
 			s += self._relation
 		return s.upper()
 
-def parse_files(base_path, model_name, model, trees, vocab, \
+def parse_files(base_path, gold_files_dir, model_name, model, trees, vocab, \
 	wordVectors, max_edus, y_all):
 	path = base_path
 
@@ -157,13 +158,18 @@ def predict_transition(queue, stack, model_name, model, tree, vocab, \
 	if model_name == "neural":
 		pred = neural_net_predict(model, x_vecs)
 		action = ind_to_action_map[pred.argmax()]
+		_, indices = torch.sort(pred)
 	else:
 		pred = linear_model_predict(model, x_vecs)
 		action = ind_to_action_map[y_all[np.argmax(pred)]]
-	
+		indices = np.argsort(pred)	
+
+	if queue.len() <= 0 and action == "SHIFT":
+		action = ind_to_action_map[indices[-2]]
+
 	if action == "SHIFT":
-		transition._action = "shift"
-	else:
+		transition._action = "shift"	
+	else:	 
 		transition._action = "reduce"
 
 		split_action = action.split("-")

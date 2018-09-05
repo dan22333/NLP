@@ -40,5 +40,5 @@ if __name__ == '__main__':
 	print("evaluate..")
 	[dev_trees, _] = preprocess(work_dir, "DEV", "dev_binarized", "dev_gold")
 
-	parse_files(work_dir, model_name, model, dev_trees, vocab, wordVectors, \
+	parse_files(work_dir, "dev_gold", model_name, model, dev_trees, vocab, wordVectors, \
 		max_edus, y_all)

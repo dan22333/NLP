@@ -160,7 +160,7 @@ def predict_transition(queue, stack, model_name, model, tree, vocab, \
 		action = ind_to_action_map[pred.argmax()]
 		_, indices = torch.sort(pred)
 	else:
-		pred = linear_model_predict(model, x_vecs)
+		pred = linear_predict(model, x_vecs)
 		action = ind_to_action_map[y_all[np.argmax(pred)]]
 		indices = np.argsort(pred)	
 

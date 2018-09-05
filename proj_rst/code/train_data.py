@@ -75,7 +75,7 @@ def gen_train_data_tree(node, stack, queue, samples):
 		assert(stack.pop(-1) == node._childs[0])
 		stack.append(node)
 
-	if node._type != "Root":
+	if True or node._type != "Root":
 		samples.append(sample)
 
 def gen_action(parent, child):

@@ -5,6 +5,12 @@ from preprocess import Node
 from preprocess import print_serial_file
 from preprocess import extract_base_name_file
 from evaluation import eval
+from features import add_features_per_sample
+from train_data import Sample
+from train_data import gen_state
+from model import neural_net_predict
+from model import linear_predict
+from relations_inventory import ind_to_action_map
 
 class Stack(object):
 	def __init__(self):
@@ -49,16 +55,28 @@ class Transition(object):
 		self._relation = '' # cluster relation
 		self._action = '' # shift or 'reduce'
 
-def parse_files(base_path, edus_files_dir="DEV", gold_files_dir="dev_gold"):
-	path = base_path
-	path += "\\"
-	path += edus_files_dir
-	path += "\\*.out.edus"
+	def gen_str(self):
+		s = self._action
+		if s != 'shift':
+			s += "-"
+			s += self._nuclearity[:][0]
+			s += "-"
+			s += self._relation
+		return s.upper()
 
-	for fn in glob.glob(path):
+def parse_files(base_path, model_name, model, trees, vocab, \
+	wordVectors, max_edus, y_all):
+	path = base_path
+
+	for tree in trees: 
+		fn = base_path
+		fn += "\\DEV\\"
+		fn += tree._fname
+		fn += ".out.edus"
 		queue = Queue.read_file(fn)
 		stack = Stack()
-		root = parse_file(queue, stack)
+		root = parse_file(queue, stack, model_name, model, tree, \
+			vocab, wordVectors, max_edus, y_all)
 
 		predfn = base_path
 		predfn += "\\pred\\"
@@ -72,12 +90,20 @@ def parse_files(base_path, edus_files_dir="DEV", gold_files_dir="dev_gold"):
 		# n2 = count_lines(goldfn)
 		# print("{} {} {} {} equal: {}".format(predfn, n1, goldfn, n2, n1 == n2))
 
-def parse_file(queue, stack):
+def parse_file(queue, stack, model_name, model, tree, \
+	vocab, wordVectors, max_edus, y_all):
+
 	leaf_ind = 1
 	while not queue.empty() or stack.size() != 1:
 		node = Node()
 		node._relation = 'SPAN'
-		transition = most_freq_baseline(queue, stack)
+
+		# transition = most_freq_baseline(queue, stack)
+		transition = predict_transition(queue, stack, model_name, model, \
+			tree, vocab, wordVectors, max_edus, y_all, leaf_ind)
+		print("queue size = {} , stack size = {} , action = {}".\
+			format(queue.len(), stack.size(), transition.gen_str()))
+
 		if transition._action == "shift":
 			# create a leaf
 			node._text = queue.pop()
@@ -113,6 +139,56 @@ def count_lines(filename):
     for line in open(filename):
         lines += 1
     return lines
+
+def predict_transition(queue, stack, model_name, model, tree, vocab, \
+	wordVectors, max_edus, y_all, top_ind_in_queue):
+	transition = Transition()
+	if stack.size() < 2:
+		transition._action = "shift"
+		return transition
+
+	sample = Sample()
+	sample._state = gen_config(queue, stack, top_ind_in_queue)
+	sample._tree = tree
+	sample.print_info()
+
+	_, x_vecs = add_features_per_sample(sample, vocab, wordVectors, max_edus, True)
+
+	if model_name == "neural":
+		pred = neural_net_predict(model, x_vecs)
+		action = ind_to_action_map[pred.argmax()]
+	else:
+		pred = linear_model_predict(model, x_vecs)
+		action = ind_to_action_map[y_all[np.argmax(pred)]]
+	
+	if action == "SHIFT":
+		transition._action = "shift"
+	else:
+		transition._action = "reduce"
+
+		split_action = action.split("-")
+		nuc = split_action[1]
+		rel = split_action[2]
+
+		if nuc == "NS":
+			transition._nuclearity.append("Nucleus")
+			transition._nuclearity.append("Satellite")
+		elif nuc == "SN":
+			transition._nuclearity.append("Satellite")
+			transition._nuclearity.append("Nucleus")
+		else:
+			transition._nuclearity.append("Nucleus")
+			transition._nuclearity.append("Nucleus")
+		transition._relation = rel
+
+	return transition
+
+def gen_config(queue, stack, top_ind_in_queue):
+	q_temp = []
+	if queue.len() > 0: # queue contains element texts not indexes
+		q_temp.append(top_ind_in_queue)
+
+	return gen_state(stack._stack, q_temp)
 
 def most_freq_baseline(queue, stack):
 	transition = Transition()

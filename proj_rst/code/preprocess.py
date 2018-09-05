@@ -39,26 +39,37 @@ class TreeInfo(object):
 	def __init__(self):
 		self._fname = '' # file name
 		self._root = ''
-		self._offset = 0
-		self._samples = []
+		self._EDUS_table = ['']
 
-def preprocess(path, dis_files_dir="TRAINING", bin_files_dir="binarized", ser_files_dir="gold"):
+def preprocess(path, dis_files_dir, bin_files_dir, ser_files_dir):
 	build_parser_action_to_ind_mapping()
 
-	trees = binarize_files(path, dis_files_dir, bin_files_dir)
+	[trees, max_edus] = binarize_files(path, dis_files_dir, bin_files_dir)
 	print_serial_files(path, trees, ser_files_dir)
-	return trees
+
+	for tree in trees:
+		fn = build_file_name(tree._fname, path, dis_files_dir, "out.edus")
+		# print("fn = {}".format(fn)) 
+		with open(fn) as fh:
+			for edu in fh:
+				edu = edu.strip()
+				tree._EDUS_table.append(edu)
+				
+	return [trees, max_edus]
 
 def binarize_files(base_path, dis_files_dir, bin_files_dir):
 	trees = []
+	max_edus = 0
 	path = base_path
 	path += "\\"
 	path += dis_files_dir
 	path += "\\*.dis"
 	for fn in glob.glob(path):
-		trees.append(binarize_file(fn, bin_files_dir))
-	
-	return trees
+		tree = binarize_file(fn, bin_files_dir)
+		trees.append(tree)
+		if tree._root._span[1] > max_edus:
+			max_edus = tree._root._span[1]
+	return [trees, max_edus]
 
 # return the root of the binarized file
 
@@ -240,6 +251,16 @@ def print_serial_file(ofh, node, doMap=True):
 		r = node._childs[1]
 		print_serial_file(ofh, l, doMap)
 		print_serial_file(ofh, r, doMap)
+
+def build_file_name(base_fn, base_path, files_dir, suf):
+	fn = base_path
+	fn += "\\"
+	fn += files_dir
+	fn += "\\"
+	fn += base_fn
+	fn += "."
+	fn += suf
+	return fn
 
 if __name__ == '__main__':
 	# binarize_file("0600.out.dis")

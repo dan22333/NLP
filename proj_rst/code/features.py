@@ -1,19 +1,18 @@
 from train_data import Sample
 from relations_inventory import action_to_ind_map
-from train_data import split_edu_to_tokens
-from train_data import vocab_get
+from vocabulary import split_edu_to_tokens
+from vocabulary import vocab_get
 
 import random
 
-def extract_features(trees, sample_ind_to_tree, samples, EDUS_table, vocab, wordVectors, subset_size, max_edus):
+def extract_features(trees, samples, vocab, wordVectors, subset_size, max_edus):
 	x_vecs = []
 	y_labels = []
 	# text_labels = []
 
 	for i in range(subset_size):
 		sample_ind = random.randint(0, len(samples) - 1)
-		tree = sample_ind_to_tree[sample_ind]
-		_, vec_feats = add_features_per_sample(samples[sample_ind], tree, EDUS_table, vocab, \
+		_, vec_feats = add_features_per_sample(samples[sample_ind], vocab, 
 			wordVectors, max_edus)
 		x_vecs.append(vec_feats)
 		y_labels.append(action_to_ind_map[samples[sample_ind]._action])
@@ -21,14 +20,17 @@ def extract_features(trees, sample_ind_to_tree, samples, EDUS_table, vocab, word
 
 	return [x_vecs, y_labels]
 
-def add_features_per_sample(sample, tree, EDUS_table, vocab, wordVectors, max_edus):
+def add_features_per_sample(sample, vocab, wordVectors, max_edus, use_def_word=False):
 	features = {}
 	feat_names = []
 	split_edus = []
+	tree = sample._tree
 	for i in range(len(sample._state)):
 		edu_ind = sample._state[i]
 		if edu_ind > 0:
- 			split_edus.append(split_edu_to_tokens(vocab, EDUS_table, edu_ind))
+			# print("{}".format(tree._fname))
+			split_edus.append(split_edu_to_tokens(vocab, tree._EDUS_table, edu_ind, \
+				'', use_def_word))
 		else:
  			split_edus.append([''])
 
@@ -61,7 +63,7 @@ def add_edu_features(features, tree, edus_ind, split_edus, max_edus):
 
 	for i in range(0,3):
 		if edus_ind[i] > 0:
-			edu_ind_in_tree.append(edus_ind[i] - tree._offset) 
+			edu_ind_in_tree.append(edus_ind[i]) 
 		else:
 			edu_ind_in_tree.append(0)
 

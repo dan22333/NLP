@@ -9,7 +9,6 @@ import re
 import glob
 import copy
 import numpy as np
-from nltk import tokenize
 
 class Vocab(object):
 	def __init__(self):
@@ -20,36 +19,24 @@ def gen_vocabulary(trees, base_path, files_dir="TRAINING", print_vocab=True):
 	vocab = Vocab()
 
 	for tree in trees:
-		# read sentences
-		fn = build_file_name(tree._fname, base_path, files_dir, "out") 
-		fn_sents = build_file_name(tree._fname, base_path, "sents", "out.sents")
-		with open(fn) as fh:
-			content = fh.read()
-			sents = tokenize.sent_tokenize(content)
-			with open(fn_sents, "w") as ofh:
-				for sent in sents:
-					ofh.write("{}\n".format(sent))
-					vocab._last_words_in_sent[sent[-1]] = 1
+		for sent in tree._sents[1:]:
+			vocab._last_words_in_sent[sent.split()[-1]] = 1
 
 	word_ind = 0
 	for tree in trees:
-		fn = build_file_name(tree._fname, base_path, files_dir, "out.edus")
-		# print("fn = {}".format(fn)) 
-		with open(fn) as fh:
-			for edu in fh:
-				edu = edu.strip()
-				# print("edu {}".format(edu))
-				edu = edu.split()
-				# print("edu aft split = {}".format(edu))
-				for word in edu:
-					# print("word = {}".format(word))
-					last = vocab._last_words_in_sent.get(word)
-					elems = break_word_to_elems(word, last)
-					# print("elem = {}".format(elems))
-					for elem in elems: 
-						if not vocab_get(vocab, elem):
-							vocab_set(vocab, elem, word_ind)
-							word_ind += 1
+		for edu in tree._EDUS_table:
+			# print("edu {}".format(edu))
+			edu = edu.split()
+			# print("edu aft split = {}".format(edu))
+			for word in edu:
+				# print("word = {}".format(word))
+				last = vocab._last_words_in_sent.get(word)
+				elems = break_word_to_elems(word, last)
+				# print("elem = {}".format(elems))
+				for elem in elems: 
+					if not vocab_get(vocab, elem):
+						vocab_set(vocab, elem, word_ind)
+						word_ind += 1
 
 	wordVectors = loadWordVectors(vocab._tokens)
 
@@ -65,18 +52,6 @@ def gen_vocabulary(trees, base_path, files_dir="TRAINING", print_vocab=True):
 		# print("words in dictionary {}%".format(n_founds / len(vocab._tokens) * 100))
 
 	return [vocab, wordVectors]
-
-def end_of_sentence(lines, line, i, n_lines):
-	if line[-1][-1] in ['.','?','!'] or i >= n_lines - 1:
-		return True
-
-	next_line = lines[i + 1]
-	next_line = next_line.strip()
-	if next_line == '':
-		return True
-
-	next_line = next_line.split()
-	return next_line[0][0].isupper() and line[-1] != "vs."
 
 def split_edu_to_tokens(vocab, EDUS_table, edu_ind, def_word='', use_def_word=False):
 	edu = EDUS_table[edu_ind]
@@ -111,8 +86,13 @@ def gen_bag_of_words(vocab, EDUS_table, edu_ind):
 	return vec	
 
 def break_word_to_elems(word, last):
+	elems = check_number(word)
+	if elems != []:
+		return elems
+
 	if word == "--" or word == "---":
 		return word
+
 	if '-' in word:
 		elems = ['-']
 		basic_words = re.split('-', word)
@@ -122,9 +102,14 @@ def break_word_to_elems(word, last):
 	else:
 		elems = break_basic_word_to_elems(word, last)
 
+	if elems[-1][-1] in [',',';']:
+		suf = elems[-1][-1]
+		elems[-1] = elems[-1][:-1]
+		elems += suf
+
 	return elems	
 
-def break_basic_word_to_elems(word, last):
+def break_basic_word_to_elems(word, last):	
 	# strip suffices attached to the last word in sentence
 	if word[-1] in ['.','!','?'] and last == True:
 		elems = []
@@ -145,12 +130,12 @@ def break_basic_word_to_elems_do(word):
 	elems = []
 	suf = ''
 	mid = word
-	if mid[0] in ['"', '(', '`','$','#','{']:
+	if mid[0] in ['"', '(', '`','$','#','{','&']:
 		elems.append(word[0])
 		mid = word[1:]
 		if mid == '':
 			return elems
-	if mid[-1] in ['\'', '"',')','!','?',',',':','-']:
+	if mid[-1] in ['\'', '"',')','!','?',',',':','-','%']:
 		suf = mid[-1]
 		mid = mid[0:-1]
 	if mid == "'s" or mid[-2:].lower() == "'s":
@@ -183,6 +168,21 @@ def break_basic_word_to_elems_do(word):
 	if suf != '':
 		elems.append(suf)
 	return elems
+
+def check_number(word):
+	word_num = word
+	if word_num[0] == '$':
+		word_num = word_num[1:]
+
+	m = re.match(r'(\d+)(\.)(\d+)', word_num) # 33.44
+	if m != None:
+		elems = list(m.groups())
+		if word_num[-1] == '%':
+			elems += word[-1]
+		elif word[0] == '$':
+			elems += word[0]
+		return elems
+	return []
 
 def vocab_get(vocab, word, print_vocab=False):
 	return vocab._tokens.get(word.lower())

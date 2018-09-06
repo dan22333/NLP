@@ -2,6 +2,8 @@ import re
 import copy
 import filecmp
 import glob
+from nltk import tokenize
+import os
 
 from utils import map_to_cluster
 from relations_inventory import build_parser_action_to_ind_mapping
@@ -40,6 +42,8 @@ class TreeInfo(object):
 		self._fname = '' # file name
 		self._root = ''
 		self._EDUS_table = ['']
+		self._sents = ['']
+		self._edu_to_sent_ind = ['']
 
 def preprocess(path, dis_files_dir, bin_files_dir, ser_files_dir):
 	build_parser_action_to_ind_mapping()
@@ -47,14 +51,25 @@ def preprocess(path, dis_files_dir, bin_files_dir, ser_files_dir):
 	[trees, max_edus] = binarize_files(path, dis_files_dir, bin_files_dir)
 	print_serial_files(path, trees, ser_files_dir)
 
+	gen_sentences(trees, path, dis_files_dir)
+
 	for tree in trees:
+		# print("file {} ".format(tree._fname))
+		sent_ind = 1
+		n_sents = len(tree._sents)
 		fn = build_file_name(tree._fname, path, dis_files_dir, "out.edus")
 		# print("fn = {}".format(fn)) 
 		with open(fn) as fh:
 			for edu in fh:
 				edu = edu.strip()
 				tree._EDUS_table.append(edu)
-				
+				if not edu in tree._sents[sent_ind]:
+					sent_ind += 1
+				tree._edu_to_sent_ind.append(sent_ind)
+				# print("edu = {}".format(edu))
+				# print("{} {}".format(sent_ind, tree._sents[sent_ind]))
+			assert(sent_ind < n_sents)
+
 	return [trees, max_edus]
 
 def binarize_files(base_path, dis_files_dir, bin_files_dir):
@@ -252,6 +267,37 @@ def print_serial_file(ofh, node, doMap=True):
 		print_serial_file(ofh, l, doMap)
 		print_serial_file(ofh, r, doMap)
 
+def gen_sentences(trees, base_path, infiles_dir):
+	sents_dir = "sents"
+
+	if not os.path.isdir(sents_dir):
+   		os.makedirs(sents_dir)
+
+	for tree in trees:
+		fn = tree._fname
+		# print("file = {}".format(tree._fname))
+		fn = build_file_name(tree._fname, base_path, infiles_dir, "out") 
+		fn_sents = build_file_name(tree._fname, base_path, "sents", "out.sents")
+		with open(fn) as fh:
+			# read the text
+			content = ''
+			lines = fh.readlines()
+			for line in lines:
+				if line.strip() != '':
+					content += line
+			# print("content {}".format(content))
+			# break the text into sentences
+			sents = tokenize.sent_tokenize(content)
+			with open(fn_sents, "w") as ofh:
+				for sent in sents:
+					# print(sent)
+					sent = sent.replace('\n', ' ')
+					sent = sent.replace('  ', ' ')
+					if sent.strip() == "\.":
+						continue
+					ofh.write("{}\n".format(sent))	
+					tree._sents.append(sent)
+					
 def build_file_name(base_fn, base_path, files_dir, suf):
 	fn = base_path
 	fn += "\\"

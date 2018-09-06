@@ -5,35 +5,35 @@ from glove import loadWordVectors
 from relations_inventory import action_to_ind_map
 from preprocess import build_file_name
 
+import re
 import glob
 import copy
 import numpy as np
+from nltk import tokenize
 
 class Vocab(object):
 	def __init__(self):
 		self._tokens = {} 
 		self._last_words_in_sent = {}
 
-def gen_vocabulary(trees, base_path, print_vocab=False):
+def gen_vocabulary(trees, base_path, files_dir="TRAINING", print_vocab=True):
 	vocab = Vocab()
 
 	for tree in trees:
 		# read sentences
-		fn = build_file_name(tree._fname, base_path, "TRAINING", "out") 
+		fn = build_file_name(tree._fname, base_path, files_dir, "out") 
+		fn_sents = build_file_name(tree._fname, base_path, "sents", "out.sents")
 		with open(fn) as fh:
-			for sent in fh:
-				sent = sent.strip()
-				if sent == '':
-					continue
-				sent = sent.split()
-				for word in sent:
-					last = word == sent[-1]
-					if last:
-						vocab._last_words_in_sent[word] = 1
+			content = fh.read()
+			sents = tokenize.sent_tokenize(content)
+			with open(fn_sents, "w") as ofh:
+				for sent in sents:
+					ofh.write("{}\n".format(sent))
+					vocab._last_words_in_sent[sent[-1]] = 1
 
 	word_ind = 0
 	for tree in trees:
-		fn = build_file_name(tree._fname, base_path, "TRAINING", "out.edus")
+		fn = build_file_name(tree._fname, base_path, files_dir, "out.edus")
 		# print("fn = {}".format(fn)) 
 		with open(fn) as fh:
 			for edu in fh:
@@ -44,20 +44,39 @@ def gen_vocabulary(trees, base_path, print_vocab=False):
 				for word in edu:
 					# print("word = {}".format(word))
 					last = vocab._last_words_in_sent.get(word)
-					elems = break_to_word_elems(word, last)
+					elems = break_word_to_elems(word, last)
 					# print("elem = {}".format(elems))
 					for elem in elems: 
 						if not vocab_get(vocab, elem):
 							vocab_set(vocab, elem, word_ind)
 							word_ind += 1
 
-	if print_vocab:
-		for key, val in vocab._tokens.items():
-			print("{} {}".format(key, val))
-
 	wordVectors = loadWordVectors(vocab._tokens)
 
+	if print_vocab:
+		n_founds = 0
+		for key, val in vocab._tokens.items():
+			found = False
+			if list(wordVectors[val]).count(0) < len(wordVectors[val]):
+				found = True
+				n_founds += 1
+			# print("key = {} ind = {} in dict = {}".format(key, val, found))
+
+		# print("words in dictionary {}%".format(n_founds / len(vocab._tokens) * 100))
+
 	return [vocab, wordVectors]
+
+def end_of_sentence(lines, line, i, n_lines):
+	if line[-1][-1] in ['.','?','!'] or i >= n_lines - 1:
+		return True
+
+	next_line = lines[i + 1]
+	next_line = next_line.strip()
+	if next_line == '':
+		return True
+
+	next_line = next_line.split()
+	return next_line[0][0].isupper() and line[-1] != "vs."
 
 def split_edu_to_tokens(vocab, EDUS_table, edu_ind, def_word='', use_def_word=False):
 	edu = EDUS_table[edu_ind]
@@ -65,7 +84,7 @@ def split_edu_to_tokens(vocab, EDUS_table, edu_ind, def_word='', use_def_word=Fa
 	tokens = []
 	for word in edu:
 		last = vocab._last_words_in_sent.get(word) != None
-		elems = break_to_word_elems(word, last)
+		elems = break_word_to_elems(word, last)
 		for elem in elems: 
 			ind = vocab_get(vocab, elem)
 			if not use_def_word:
@@ -91,28 +110,42 @@ def gen_bag_of_words(vocab, EDUS_table, edu_ind):
 		vec[ind] += 1
 	return vec	
 
-def break_to_word_elems(word, last):
+def break_word_to_elems(word, last):
+	if word == "--" or word == "---":
+		return word
+	if '-' in word:
+		elems = ['-']
+		basic_words = re.split('-', word)
+		for basic_word in basic_words:
+			if basic_word != '':
+				elems += break_basic_word_to_elems(basic_word, last)
+	else:
+		elems = break_basic_word_to_elems(word, last)
+
+	return elems	
+
+def break_basic_word_to_elems(word, last):
 	# strip suffices attached to the last word in sentence
 	if word[-1] in ['.','!','?'] and last == True:
 		elems = []
 		if len(word) > 1: # ". . ."
-			elems = break_to_word_elems_do(word[0:-1])
+			elems = break_basic_word_to_elems_do(word[0:-1])
 		elems.append(word[-1])
 		return elems
 	# strip other suffices 
-	elif word[-1] in [')','"',"\'","`"]:
+	elif word[-1] in [')','"',"\'","`","}",";"]:
 		elems = []
 		if len(word) > 1:
-			elems = break_to_word_elems_do(word[0:-1])
+			elems = break_basic_word_to_elems_do(word[0:-1])
 		elems.append(word[-1])
 		return elems
-	return break_to_word_elems_do(word)
+	return break_basic_word_to_elems_do(word)
 
-def break_to_word_elems_do(word):
+def break_basic_word_to_elems_do(word):
 	elems = []
 	suf = ''
 	mid = word
-	if mid[0] in ['"', '(', '`']:
+	if mid[0] in ['"', '(', '`','$','#','{']:
 		elems.append(word[0])
 		mid = word[1:]
 		if mid == '':

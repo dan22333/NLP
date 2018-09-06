@@ -13,6 +13,9 @@ from model import linear_predict
 from relations_inventory import ind_to_action_map
 import torch
 
+correct_illegal_action = True
+print_transition = False
+
 class Stack(object):
 	def __init__(self):
 		self._stack = []
@@ -102,7 +105,9 @@ def parse_file(queue, stack, model_name, model, tree, \
 		# transition = most_freq_baseline(queue, stack)
 		transition = predict_transition(queue, stack, model_name, model, \
 			tree, vocab, wordVectors, max_edus, y_all, leaf_ind)
-		print("queue size = {} , stack size = {} , action = {}".\
+
+		if print_transition:
+			print("queue size = {} , stack size = {} , action = {}".\
 			format(queue.len(), stack.size(), transition.gen_str()))
 
 		if transition._action == "shift":
@@ -144,14 +149,11 @@ def count_lines(filename):
 def predict_transition(queue, stack, model_name, model, tree, vocab, \
 	wordVectors, max_edus, y_all, top_ind_in_queue):
 	transition = Transition()
-	if stack.size() < 2:
-		transition._action = "shift"
-		return transition
 
 	sample = Sample()
 	sample._state = gen_config(queue, stack, top_ind_in_queue)
 	sample._tree = tree
-	sample.print_info()
+	# sample.print_info()
 
 	_, x_vecs = add_features_per_sample(sample, vocab, wordVectors, max_edus, True)
 
@@ -164,8 +166,11 @@ def predict_transition(queue, stack, model_name, model, tree, vocab, \
 		action = ind_to_action_map[y_all[np.argmax(pred)]]
 		indices = np.argsort(pred)	
 
-	if queue.len() <= 0 and action == "SHIFT":
-		action = ind_to_action_map[indices[-2]]
+	if correct_illegal_action:
+		if stack.size() < 2 and action != "SHIFT":
+			action = "SHIFT"
+		elif queue.len() <= 0 and action == "SHIFT":
+			action = ind_to_action_map[indices[-2]]
 
 	if action == "SHIFT":
 		transition._action = "shift"	

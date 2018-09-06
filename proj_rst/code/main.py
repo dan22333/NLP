@@ -28,8 +28,8 @@ def train_model(argv, trees, samples, y_all, vocab, wordVectors, max_edus):
 	
 if __name__ == '__main__':
 	print("preprocessing")
-	[trees, max_edus] = preprocess(work_dir, "TRAINING", "binarized", "gold")
-	[vocab, wordVectors] = gen_vocabulary(trees, work_dir)
+	[trees, max_edus] = preprocess(work_dir, "TRAINING_DEV", "binarized", "gold")
+	[vocab, wordVectors] = gen_vocabulary(trees, work_dir, "TRAINING_DEV")
 
 	print("training..")
 	[samples, y_all] = gen_train_data(trees, work_dir)

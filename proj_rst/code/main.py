@@ -10,35 +10,37 @@ from vocabulary import gen_vocabulary
 
 import sys
 
-work_dir = "."
+WORK_DIR = "."
+TRAINING_DIR = "TRAINING"
+DEV_DIR = "DEV"
 
-def train_model(argv, trees, samples, y_all, vocab, wordVectors, max_edus):
+def train_model(argv, trees, samples, y_all, vocab, max_edus, tag_to_ind_map):
 	model_name = "neural"
 	if len(argv) > 2:
 		if argv[1] == "-m":
 			model_name = argv[2]
 
 	if model_name == "neural":
-		model = neural_network_model(trees, samples, vocab, wordVectors, max_edus)
+		model = neural_network_model(trees, samples, vocab, max_edus, tag_to_ind_map)
 	else:
 		model = mini_batch_linear_model(trees, samples, y_all, vocab, \
-			wordVectors, max_edus)
+			max_edus, tag_to_ind_map)
 
 	return [model_name, model]
 	
 if __name__ == '__main__':
 	print("preprocessing")
-	[trees, max_edus] = preprocess(work_dir, "TRAINING_DEV", "binarized", "gold")
-	[vocab, wordVectors] = gen_vocabulary(trees, work_dir, "TRAINING_DEV")
+	[trees, max_edus] = preprocess(WORK_DIR, TRAINING_DIR, "binarized", "gold")
+	[vocab, tag_to_ind_map] = gen_vocabulary(trees, WORK_DIR, TRAINING_DIR)
 
 	print("training..")
-	[samples, y_all] = gen_train_data(trees, work_dir)
+	[samples, y_all] = gen_train_data(trees, WORK_DIR)
 
 	[model_name, model] = train_model(sys.argv, trees, samples, y_all, \
-		vocab, wordVectors, max_edus)
+		vocab, max_edus, tag_to_ind_map)
 
 	print("evaluate..")
-	[dev_trees, _] = preprocess(work_dir, "DEV", "dev_binarized", "dev_gold")
+	[dev_trees, _] = preprocess(WORK_DIR, DEV_DIR, "dev_binarized", "dev_gold")
 
-	parse_files(work_dir, "dev_gold", model_name, model, dev_trees, vocab, wordVectors, \
-		max_edus, y_all)
+	parse_files(WORK_DIR, "dev_gold", model_name, model, dev_trees, vocab, \
+		max_edus, y_all, tag_to_ind_map, DEV_DIR)

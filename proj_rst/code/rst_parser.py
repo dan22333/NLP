@@ -1,5 +1,6 @@
 import glob
 import random
+import numpy as np
 
 from preprocess import Node
 from preprocess import print_serial_file
@@ -69,18 +70,21 @@ class Transition(object):
 		return s.upper()
 
 def parse_files(base_path, gold_files_dir, model_name, model, trees, vocab, \
-	wordVectors, max_edus, y_all):
+	max_edus, y_all, tag_to_ind_map, infiles_dir="\\DEV\\"):
 	path = base_path
 
 	for tree in trees: 
 		fn = base_path
-		fn += "\\DEV\\"
+		fn += "\\"
+		fn += infiles_dir
+		fn += "\\"
 		fn += tree._fname
 		fn += ".out.edus"
 		queue = Queue.read_file(fn)
 		stack = Stack()
+		print("Parsing tree {}".format(tree._fname))
 		root = parse_file(queue, stack, model_name, model, tree, \
-			vocab, wordVectors, max_edus, y_all)
+			vocab, max_edus, y_all, tag_to_ind_map)
 
 		predfn = base_path
 		predfn += "\\pred\\"
@@ -95,7 +99,7 @@ def parse_files(base_path, gold_files_dir, model_name, model, trees, vocab, \
 		# print("{} {} {} {} equal: {}".format(predfn, n1, goldfn, n2, n1 == n2))
 
 def parse_file(queue, stack, model_name, model, tree, \
-	vocab, wordVectors, max_edus, y_all):
+	vocab, max_edus, y_all, tag_to_ind_map):
 
 	leaf_ind = 1
 	while not queue.empty() or stack.size() != 1:
@@ -104,7 +108,7 @@ def parse_file(queue, stack, model_name, model, tree, \
 
 		# transition = most_freq_baseline(queue, stack)
 		transition = predict_transition(queue, stack, model_name, model, \
-			tree, vocab, wordVectors, max_edus, y_all, leaf_ind)
+			tree, vocab, max_edus, y_all, tag_to_ind_map, leaf_ind)
 
 		if print_transition:
 			print("queue size = {} , stack size = {} , action = {}".\
@@ -147,7 +151,7 @@ def count_lines(filename):
     return lines
 
 def predict_transition(queue, stack, model_name, model, tree, vocab, \
-	wordVectors, max_edus, y_all, top_ind_in_queue):
+	max_edus, y_all, tag_to_ind_map, top_ind_in_queue):
 	transition = Transition()
 
 	sample = Sample()
@@ -155,14 +159,15 @@ def predict_transition(queue, stack, model_name, model, tree, vocab, \
 	sample._tree = tree
 	# sample.print_info()
 
-	_, x_vecs = add_features_per_sample(sample, vocab, wordVectors, max_edus, True)
+	_, x_vecs = add_features_per_sample(sample, vocab, max_edus, 
+		tag_to_ind_map, True)
 
 	if model_name == "neural":
 		pred = neural_net_predict(model, x_vecs)
 		action = ind_to_action_map[pred.argmax()]
 		_, indices = torch.sort(pred)
 	else:
-		pred = linear_predict(model, x_vecs)
+		pred = linear_predict(model, [x_vecs])
 		action = ind_to_action_map[y_all[np.argmax(pred)]]
 		indices = np.argsort(pred)	
 

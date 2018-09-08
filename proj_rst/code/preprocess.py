@@ -2,7 +2,9 @@ import re
 import copy
 import filecmp
 import glob
+import nltk
 from nltk import tokenize
+from nltk import pos_tag
 import os
 
 from utils import map_to_cluster
@@ -44,6 +46,7 @@ class TreeInfo(object):
 		self._EDUS_table = ['']
 		self._sents = ['']
 		self._edu_to_sent_ind = ['']
+		self._edu_word_tag_table = [['']]
 
 def preprocess(path, dis_files_dir, bin_files_dir, ser_files_dir):
 	build_parser_action_to_ind_mapping()
@@ -52,6 +55,10 @@ def preprocess(path, dis_files_dir, bin_files_dir, ser_files_dir):
 	print_serial_files(path, trees, ser_files_dir)
 
 	gen_sentences(trees, path, dis_files_dir)
+
+	# statistics
+	num_edus = 0
+	match_edus = 0
 
 	for tree in trees:
 		# print("file {} ".format(tree._fname))
@@ -62,13 +69,21 @@ def preprocess(path, dis_files_dir, bin_files_dir, ser_files_dir):
 		with open(fn) as fh:
 			for edu in fh:
 				edu = edu.strip()
+				edu_tokenized = tokenize.word_tokenize(edu)
+				tree._edu_word_tag_table.append(nltk.pos_tag(edu_tokenized))
 				tree._EDUS_table.append(edu)
 				if not edu in tree._sents[sent_ind]:
 					sent_ind += 1
 				tree._edu_to_sent_ind.append(sent_ind)
+				if edu in tree._sents[sent_ind]:
+					match_edus += 1
+				num_edus += 1
 				# print("edu = {}".format(edu))
 				# print("{} {}".format(sent_ind, tree._sents[sent_ind]))
 			assert(sent_ind < n_sents)
+
+	print("num match between edu and a sentence {} , num edus {} , {}%".\
+		format(match_edus, num_edus, match_edus / num_edus * 100.0))
 
 	return [trees, max_edus]
 
@@ -297,7 +312,7 @@ def gen_sentences(trees, base_path, infiles_dir):
 						continue
 					ofh.write("{}\n".format(sent))	
 					tree._sents.append(sent)
-					
+	
 def build_file_name(base_fn, base_path, files_dir, suf):
 	fn = base_path
 	fn += "\\"

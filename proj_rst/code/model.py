@@ -18,7 +18,7 @@ hidden_size = 128
 lr = 1e-4 # learning rate
 
 class Network(nn.Module):
-    def __init__(self, n_features, hidden_size, num_classes):
+    def __init__(self, n_features, hidden_size, num_classes, bias=0.0):
         super(Network, self).__init__()
         self.fc1 = nn.Linear(n_features, hidden_size)
         self.fc1.weight.data.fill_(1.0)
@@ -29,27 +29,30 @@ class Network(nn.Module):
         x = F.relu(self.fc1(x))
         return F.relu(self.fc2(x))
  
-def neural_network_model(trees, samples, vocab, wordVectors, max_edus, \
-	iterations=200, subset_size=500, print_every=10):
+def neural_network_model(trees, samples, vocab, max_edus, tag_to_ind_map, \
+	iterations=200, subset_size=5000, print_every=10):
 
 	num_classes = len(ind_to_action_map)
 
 	[x_vecs, _] = extract_features(trees, samples, vocab, \
-		wordVectors, 1, max_edus)
+		1, max_edus, tag_to_ind_map)
+
+	print("Running neural model")
 
 	# x = torch.randn(subset_size, len(x_vecs[0]))
 	# y = torch.randn(subset_size, num_classes)
 
-	# print(len(x_vecs[0]))
+	print("num features {}".format(len(x_vecs[0])))
 
 	net = Network(len(x_vecs[0]), hidden_size, num_classes)
+	print(net)
 
 	criterion = nn.CrossEntropyLoss()
 	optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9)
 
 	for i in range(iterations):
 		[x_vecs, y_labels] = extract_features(trees, samples, vocab, \
-			wordVectors, subset_size, max_edus)
+			subset_size, max_edus, tag_to_ind_map)
 
 		# print("{} {}".format(x_vecs, y_labels))
 
@@ -96,11 +99,13 @@ def neural_net_predict(net, x_vecs):
 	y_pred = net(Variable(torch.tensor(x_vecs, dtype=torch.float)))
 	return y_pred
 
-def mini_batch_linear_model(trees, samples, y_all, vocab, wordVectors, \
-	max_edus, iterations=1000, subset_size=500, print_every=10):
+def mini_batch_linear_model(trees, samples, y_all, vocab, \
+	max_edus, tag_to_ind_map, iterations=200, subset_size=500, print_every=10):
 
 	print("n_samples = {} , vocab size = {} , n_classes = {}".\
 		format(len(samples), len(vocab._tokens), len(y_all)))
+
+	print("Running linear model")
 
 	classes = y_all
 
@@ -112,7 +117,7 @@ def mini_batch_linear_model(trees, samples, y_all, vocab, wordVectors, \
 			print("mini batch iter = {}".format(i))
 
 		[x_vecs, y_labels] = extract_features(trees, samples, vocab, \
-			wordVectors, subset_size, max_edus)
+			subset_size, max_edus, tag_to_ind_map)
 
 		dec = linear_train(clf, x_vecs, y_labels, classes)
 		scores = [y_all[np.argmax(elem)] for elem in dec]
@@ -133,7 +138,7 @@ def linear_predict(clf, x_vecs):
 	# print(pred.shape)
 	return pred
 
-def non_linear_model(trees, samples, vocab, wordVectors, max_edus, \
+def non_linear_model(trees, samples, vocab, max_edus, tag_to_ind_map, \
 	iterations=1000, subset_size=5000, print_every=10):
 
 	print("n_samples = {} , vocab size = {}".format(len(samples), len(vocab)))
@@ -149,7 +154,7 @@ def non_linear_model(trees, samples, vocab, wordVectors, max_edus, \
 			print("mini batch iter = {}".format(i))
 
 		[x_vecs, y_labels] = extract_features(trees, samples, vocab, \
-			wordVectors, subset_size, max_edus)
+			subset_size, max_edus, tag_to_ind_map)
 		dec = non_linear_train(clf, x_vecs, y_labels)
 		classes = np.unique(y_labels)
 		scores = [classes[np.argmax(elem)] for elem in dec]

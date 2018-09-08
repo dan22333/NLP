@@ -11,9 +11,11 @@ import copy
 import numpy as np
 import nltk
 
+DEFAULT_TOKEN = ''
+
 class Vocab(object):
 	def __init__(self):
-		self._tokens = {'': 0} 
+		self._tokens = { DEFAULT_TOKEN: 0} 
 		self._wordVectors = []
 
 def gen_vocabulary(trees, base_path, files_dir="TRAINING", print_vocab=True):
@@ -87,7 +89,7 @@ def build_tags_dict(trees):
 
 	return tag_to_ind_map, ind_to_tag_map
 
-def vocab_get(vocab, word, use_def_word=False, def_word=''):
+def vocab_get(vocab, word, use_def_word=False, def_word=DEFAULT_TOKEN):
 	val = vocab._tokens.get(word.lower())
 	if val != None or not use_def_word:
 		return val

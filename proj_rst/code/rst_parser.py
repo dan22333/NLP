@@ -1,6 +1,8 @@
 import glob
 import random
 import numpy as np
+import torch
+import os
 
 from preprocess import Node
 from preprocess import print_serial_file
@@ -12,10 +14,12 @@ from train_data import gen_state
 from model import neural_net_predict
 from model import linear_predict
 from relations_inventory import ind_to_action_map
-import torch
+from preprocess import remove_dir
 
 correct_illegal_action = True
 print_transition = False
+
+OUTDIR = "pred"
 
 class Stack(object):
 	def __init__(self):
@@ -73,6 +77,12 @@ def parse_files(base_path, gold_files_dir, model_name, model, trees, vocab, \
 	max_edus, y_all, tag_to_ind_map, infiles_dir="\\DEV\\"):
 	path = base_path
 
+	remove_dir(base_path, OUTDIR)
+	path_to_out = base_path
+	path_to_out += "\\"
+	path_to_out += OUTDIR
+	os.makedirs(path_to_out)
+
 	for tree in trees: 
 		fn = base_path
 		fn += "\\"
@@ -82,14 +92,12 @@ def parse_files(base_path, gold_files_dir, model_name, model, trees, vocab, \
 		fn += ".out.edus"
 		queue = Queue.read_file(fn)
 		stack = Stack()
-		print("Parsing tree {}".format(tree._fname))
+		# print("Parsing tree {}".format(tree._fname))
 		root = parse_file(queue, stack, model_name, model, tree, \
 			vocab, max_edus, y_all, tag_to_ind_map)
-
-		predfn = base_path
-		predfn += "\\pred\\"
-		base_name = extract_base_name_file(fn)
-		predfn += base_name
+		predfn = path_to_out
+		predfn += "\\"
+		predfn += tree._fname
 		with open(predfn, "w") as ofh:
 			print_serial_file(ofh, root, False)
 
@@ -163,9 +171,13 @@ def predict_transition(queue, stack, model_name, model, tree, vocab, \
 		tag_to_ind_map, True)
 
 	if model_name == "neural":
+		# print("x_vecs {}".format(x_vecs[600:]))
 		pred = neural_net_predict(model, x_vecs)
+		# print("{}".format(pred))
 		action = ind_to_action_map[pred.argmax()]
-		_, indices = torch.sort(pred)
+		vals, indices = torch.sort(pred)
+		scores = [(vals[i], ind_to_action_map[indices[i]]) for i in reversed(range(len(pred)))]
+		# print("scores {} \n best {} {}".format(scores[:15], pred.argmax(), action))
 	else:
 		pred = linear_predict(model, [x_vecs])
 		action = ind_to_action_map[y_all[np.argmax(pred)]]

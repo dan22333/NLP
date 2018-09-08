@@ -18,7 +18,7 @@ hidden_size = 128
 lr = 1e-4 # learning rate
 
 class Network(nn.Module):
-    def __init__(self, n_features, hidden_size, num_classes, bias=0.0):
+    def __init__(self, n_features, hidden_size, num_classes):
         super(Network, self).__init__()
         self.fc1 = nn.Linear(n_features, hidden_size)
         self.fc1.weight.data.fill_(1.0)

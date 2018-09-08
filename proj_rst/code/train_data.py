@@ -47,7 +47,8 @@ def gen_train_data(trees, path, print_data=True):
 			sample._tree = tree
 			samples.append(sample)
 			
-
+	print("n_samples {}".format(len(samples)))
+	
 	y_all = [action_to_ind_map[samples[i]._action] for i in range(len(samples))]
 	y_all = np.unique(y_all)
 

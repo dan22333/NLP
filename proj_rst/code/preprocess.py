@@ -93,6 +93,7 @@ def binarize_files(base_path, dis_files_dir, bin_files_dir):
 	path = base_path
 	path += "\\"
 	path += dis_files_dir
+
 	path += "\\*.dis"
 	for fn in glob.glob(path):
 		tree = binarize_file(fn, bin_files_dir)
@@ -255,11 +256,16 @@ def print_spaces(ofh, level):
 
 # print serial tree files
 
-def print_serial_files(path, trees, outdir):
+def print_serial_files(base_path, trees, outdir):
+	remove_dir(base_path, outdir)
+	path = base_path
+	path += "\\"
+	path += outdir
+
+	os.makedirs(path)
+
 	for tree in trees:
 		outfn = path
-		outfn += "\\"
-		outfn += outdir
 		outfn += "\\"
 		outfn += tree._fname
 		with open(outfn, "w") as ofh:
@@ -322,6 +328,17 @@ def build_file_name(base_fn, base_path, files_dir, suf):
 	fn += "."
 	fn += suf
 	return fn
+
+def remove_dir(base_path, dir):
+	path = base_path
+	path += "\\"
+	path += dir
+	if os.path.isdir(dir):
+		path_to_files = path
+		path_to_files += "\\*"
+		for fn in glob.glob(path_to_files):
+			os.remove(fn)
+		os.rmdir(path)
 
 if __name__ == '__main__':
 	# binarize_file("0600.out.dis")

@@ -3,6 +3,7 @@ from relations_inventory import action_to_ind_map
 from vocabulary import split_edu_to_tags
 from vocabulary import split_edu_to_tokens
 from vocabulary import vocab_get
+from vocabulary import DEFAULT_TOKEN # empty string
 
 import random
 
@@ -66,7 +67,7 @@ def add_word_features(features, split_edus, feat_names, word_loc):
 	for i in range(len(split_edus)):
 		words = split_edus[i]
 		feat = feat_names[i]
-		features[feat] = ''
+		features[feat] = DEFAULT_TOKEN
 		if words != ['']:
 			# last word or one of the first 3 words
 			if word_loc < 0 or len(words) > word_loc:
@@ -118,7 +119,7 @@ def gen_vectorized_features(features, vocab, tag_to_ind_map, use_def_word):
 	for key, val in features.items():
 		# print("key {} val {}".format(key, val))
 		if 'WORD' in key:
-			word_ind = vocab_get(vocab, val, use_def_word)
+			word_ind = vocab_get(vocab, val, use_def_word, DEFAULT_TOKEN)
 			vecs += [elem for elem in vocab._wordVectors[word_ind]]
 		elif 'TAG' in key:
 			vecs += [tag_to_ind_map[val] / n_tags]

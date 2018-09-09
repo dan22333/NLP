@@ -6,7 +6,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
-import math
 
 from features import extract_features
 from relations_inventory import ind_to_action_map

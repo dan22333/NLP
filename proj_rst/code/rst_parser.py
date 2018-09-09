@@ -14,12 +14,7 @@ from train_data import gen_state
 from model import neural_net_predict
 from model import linear_predict
 from relations_inventory import ind_to_action_map
-from preprocess import remove_dir
-
-correct_illegal_action = True
-print_transition = False
-
-OUTDIR = "pred"
+from preprocess import create_dir
 
 class Stack(object):
 	def __init__(self):
@@ -73,20 +68,19 @@ class Transition(object):
 			s += self._relation
 		return s.upper()
 
-def parse_files(base_path, gold_files_dir, model_name, model, trees, vocab, \
-	max_edus, y_all, tag_to_ind_map, infiles_dir="\\DEV\\"):
-	path = base_path
+def parse_files(base_path, model_name, model, trees, vocab, \
+	max_edus, y_all, tag_to_ind_map, baseline, infiles_dir, gold_files_dir, pred_outdir="pred"):
 
-	remove_dir(base_path, OUTDIR)
-	path_to_out = base_path
-	path_to_out += "\\"
-	path_to_out += OUTDIR
-	os.makedirs(path_to_out)
+	path = base_path
+	path += "\\"
+	path += infiles_dir # dev dataset
+	assert os.path.isdir(path), \
+		"Path to dataset does not exist: " + in_files_dir
+
+	path_to_out = create_dir(base_path, pred_outdir)
 
 	for tree in trees: 
-		fn = base_path
-		fn += "\\"
-		fn += infiles_dir
+		fn = path
 		fn += "\\"
 		fn += tree._fname
 		fn += ".out.edus"
@@ -94,7 +88,7 @@ def parse_files(base_path, gold_files_dir, model_name, model, trees, vocab, \
 		stack = Stack()
 		# print("Parsing tree {}".format(tree._fname))
 		root = parse_file(queue, stack, model_name, model, tree, \
-			vocab, max_edus, y_all, tag_to_ind_map)
+			vocab, max_edus, y_all, tag_to_ind_map, baseline)
 		predfn = path_to_out
 		predfn += "\\"
 		predfn += tree._fname
@@ -102,25 +96,23 @@ def parse_files(base_path, gold_files_dir, model_name, model, trees, vocab, \
 			print_serial_file(ofh, root, False)
 
 	eval(gold_files_dir, "pred")
-		# n1 = count_lines(predfn) 
-		# n2 = count_lines(goldfn)
-		# print("{} {} {} {} equal: {}".format(predfn, n1, goldfn, n2, n1 == n2))
 
 def parse_file(queue, stack, model_name, model, tree, \
-	vocab, max_edus, y_all, tag_to_ind_map):
+	vocab, max_edus, y_all, tag_to_ind_map, baseline):
 
 	leaf_ind = 1
 	while not queue.empty() or stack.size() != 1:
 		node = Node()
 		node._relation = 'SPAN'
 
-		# transition = most_freq_baseline(queue, stack)
-		transition = predict_transition(queue, stack, model_name, model, \
-			tree, vocab, max_edus, y_all, tag_to_ind_map, leaf_ind)
+		if baseline:
+			transition = most_freq_baseline(queue, stack)
+		else:
+			transition = predict_transition(queue, stack, model_name, model, \
+				tree, vocab, max_edus, y_all, tag_to_ind_map, leaf_ind)
 
-		if print_transition:
-			print("queue size = {} , stack size = {} , action = {}".\
-			format(queue.len(), stack.size(), transition.gen_str()))
+		# print("queue size = {} , stack size = {} , action = {}".\
+		# format(queue.len(), stack.size(), transition.gen_str()))
 
 		if transition._action == "shift":
 			# create a leaf
@@ -152,12 +144,6 @@ def parse_file(queue, stack, model_name, model, tree, \
 
 	return stack.pop()
 
-def count_lines(filename):
-    lines = 0
-    for line in open(filename):
-        lines += 1
-    return lines
-
 def predict_transition(queue, stack, model_name, model, tree, vocab, \
 	max_edus, y_all, tag_to_ind_map, top_ind_in_queue):
 	transition = Transition()
@@ -171,23 +157,21 @@ def predict_transition(queue, stack, model_name, model, tree, vocab, \
 		tag_to_ind_map, True)
 
 	if model_name == "neural":
-		# print("x_vecs {}".format(x_vecs[600:]))
 		pred = neural_net_predict(model, x_vecs)
-		# print("{}".format(pred))
 		action = ind_to_action_map[pred.argmax()]
-		vals, indices = torch.sort(pred)
-		scores = [(vals[i], ind_to_action_map[indices[i]]) for i in reversed(range(len(pred)))]
+		_, indices = torch.sort(pred)
+		# scores = [(vals[i], ind_to_action_map[indices[i]]) for i in reversed(range(len(pred)))]
 		# print("scores {} \n best {} {}".format(scores[:15], pred.argmax(), action))
 	else:
 		pred = linear_predict(model, [x_vecs])
 		action = ind_to_action_map[y_all[np.argmax(pred)]]
 		indices = np.argsort(pred)	
 
-	if correct_illegal_action:
-		if stack.size() < 2 and action != "SHIFT":
-			action = "SHIFT"
-		elif queue.len() <= 0 and action == "SHIFT":
-			action = ind_to_action_map[indices[-2]]
+	# correct invalid action
+	if stack.size() < 2 and action != "SHIFT":
+		action = "SHIFT"
+	elif queue.len() <= 0 and action == "SHIFT":
+		action = ind_to_action_map[indices[-2]]
 
 	if action == "SHIFT":
 		transition._action = "shift"	
@@ -238,6 +222,3 @@ def most_freq_baseline(queue, stack):
 	transition._nuclearity.append("Satellite")
 
 	return transition
-
-if __name__ == '__main__':
-	parse_files("..")

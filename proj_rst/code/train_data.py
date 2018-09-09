@@ -19,7 +19,7 @@ class Sample(object):
 	def print_info(self):
 		print("sample {} {}".format(self._state, self._action))
 
-def gen_train_data(trees, path, print_data=True):
+def gen_train_data(trees, path, print_data=False):
 	samples = []
 
 	for tree in trees:
@@ -46,9 +46,7 @@ def gen_train_data(trees, path, print_data=True):
 		for sample in tree_samples:
 			sample._tree = tree
 			samples.append(sample)
-			
-	print("n_samples {}".format(len(samples)))
-	
+
 	y_all = [action_to_ind_map[samples[i]._action] for i in range(len(samples))]
 	y_all = np.unique(y_all)
 
@@ -76,8 +74,7 @@ def gen_train_data_tree(node, stack, queue, samples):
 		assert(stack.pop(-1) == node._childs[0])
 		stack.append(node)
 
-	if True or node._type != "Root":
-		samples.append(sample)
+	samples.append(sample)
 
 def gen_action(parent, child):
 	action = "REDUCE-"

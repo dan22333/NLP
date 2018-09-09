@@ -10,6 +10,7 @@ import glob
 import copy
 import numpy as np
 import nltk
+import os
 
 DEFAULT_TOKEN = ''
 
@@ -18,21 +19,26 @@ class Vocab(object):
 		self._tokens = { DEFAULT_TOKEN: 0} 
 		self._wordVectors = []
 
-def gen_vocabulary(trees, base_path, files_dir="TRAINING", print_vocab=True):
+def gen_vocabulary(trees, base_path, files_dir="TRAINING", glove_dir="glove", print_vocab=False):
 	vocab = Vocab()
 
 	word_ind = 1
 	for tree in trees:
 		for edu in tree._EDUS_table:
-			# print("edu {}".format(edu))
 			edu = nltk.word_tokenize(edu)
-			# print("edu tokens = {}".format(edu))
 			for word in edu:
 				if not vocab_get(vocab, word):
 					vocab_set(vocab, word, word_ind)
 					word_ind += 1
 
-	vocab._wordVectors = loadWordVectors(vocab._tokens)
+	glove_fn = base_path
+	glove_fn += "\\"
+	glove_fn += glove_dir
+	glove_fn += "\\"
+	glove_fn += "glove.6B.50d.txt"
+	assert os.path.exists(glove_fn), "file does not exists: " + glove_fn
+	
+	vocab._wordVectors = loadWordVectors(vocab._tokens, glove_fn)
 
 	if print_vocab:
 		n_founds = 0

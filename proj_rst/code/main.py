@@ -10,37 +10,69 @@ from vocabulary import gen_vocabulary
 
 import sys
 
-WORK_DIR = "."
-TRAINING_DIR = "TRAINING"
-DEV_DIR = "DEV"
+# Directories variables
+WORK_DIR = "." # current dir 
+TRAINING_DIR = "TRAINING" # directory of the training dataset
+DEV_TEST_DIR = "DEV" # directory of dev/test dataset
+DEV_TEST_GOLD_DIR = "dev_gold" # dir of the golden serial trees of dev/test dataset
+PRED_OUTDIR = "pred" # directory of the generated predicted serial trees
+GLOVE_DIR = "glove" # in which the glove embedding vectors file exists (glove.6B.50d.txt)
 
-def train_model(argv, trees, samples, y_all, vocab, max_edus, tag_to_ind_map):
+# in case in TEST data set
+NEW_TAGS = []
+
+def parse_args(argv):
 	model_name = "neural"
-	if len(argv) > 2:
-		if argv[1] == "-m":
-			model_name = argv[2]
+	baseline = False
 
+	if len(argv) < 2:
+		return [model_name, baseline]
+
+	cmd = "-m <linear|neural> -baseline"
+
+	if len(argv) >= 2:
+		i = 1
+		while i < len(argv):
+			if argv[i] == "-m":
+				assert (i + 1) < len(argv), "Model name is missing. Correct cmd: " + cmd 
+				model_name = argv[i + 1]
+				assert model_name == "linear" or model_name == "neural", \
+					"Bad model name: " + argv[i + 1] + " Use linear|neural"
+				i += 1
+			elif argv[i] == "-baseline":
+				baseline = True
+			else:
+				assert False, "bad command line. Correct cmd: " + cmd
+			i += 1
+
+	return [model_name, baseline]
+
+def train_model(model_name, trees, samples, y_all, vocab, max_edus, tag_to_ind_map):
 	if model_name == "neural":
 		model = neural_network_model(trees, samples, vocab, max_edus, tag_to_ind_map)
 	else:
 		model = mini_batch_linear_model(trees, samples, y_all, vocab, \
 			max_edus, tag_to_ind_map)
 
-	return [model_name, model]
+	return model
 	
 if __name__ == '__main__':
+	[model_name, baseline] = parse_args(sys.argv)
 	print("preprocessing")
-	[trees, max_edus] = preprocess(WORK_DIR, TRAINING_DIR, "binarized", "gold")
-	[vocab, tag_to_ind_map] = gen_vocabulary(trees, WORK_DIR, TRAINING_DIR)
+	[trees, max_edus] = preprocess(WORK_DIR, TRAINING_DIR)
+	[vocab, tag_to_ind_map] = gen_vocabulary(trees, WORK_DIR, TRAINING_DIR, GLOVE_DIR)
 
-	print("training..")
-	[samples, y_all] = gen_train_data(trees, WORK_DIR)
-
-	[model_name, model] = train_model(sys.argv, trees, samples, y_all, \
-		vocab, max_edus, tag_to_ind_map)
+	model = '' # model data structure
+	y_all = '' # for the linear model, y labels are computed dynamically
+	if not baseline:
+		print("training..")
+		[samples, y_all] = gen_train_data(trees, WORK_DIR)
+		model = train_model(model_name, trees, samples, y_all, \
+			vocab, max_edus, tag_to_ind_map)
 
 	print("evaluate..")
-	[dev_trees, _] = preprocess(WORK_DIR, DEV_DIR, "dev_binarized", "dev_gold")
+	[dev_trees, _] = preprocess(WORK_DIR, DEV_TEST_DIR, DEV_TEST_GOLD_DIR)
 
-	parse_files(WORK_DIR, "dev_gold", model_name, model, dev_trees, vocab, \
-		max_edus, y_all, tag_to_ind_map, DEV_DIR)
+	parse_files(WORK_DIR, model_name, model, dev_trees, vocab, \
+		max_edus, y_all, tag_to_ind_map, baseline, DEV_TEST_DIR, \
+		DEV_TEST_GOLD_DIR, PRED_OUTDIR)

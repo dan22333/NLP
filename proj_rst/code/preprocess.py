@@ -10,6 +10,10 @@ import os
 from utils import map_to_cluster
 from relations_inventory import build_parser_action_to_ind_mapping
 
+# debugging 
+print_sents = False
+sents_dir = "sents"
+
 class Node(object):
 	def __init__(self):
 		self._nuclearity = '' # 'Nucleus' | 'Satellite'
@@ -48,24 +52,24 @@ class TreeInfo(object):
 		self._edu_to_sent_ind = ['']
 		self._edu_word_tag_table = [['']]
 
-def preprocess(path, dis_files_dir, bin_files_dir, ser_files_dir):
+def preprocess(path, dis_files_dir, ser_files_dir='', bin_files_dir=''):
 	build_parser_action_to_ind_mapping()
 
 	[trees, max_edus] = binarize_files(path, dis_files_dir, bin_files_dir)
-	print_serial_files(path, trees, ser_files_dir)
+
+	if ser_files_dir != '':
+		print_serial_files(path, trees, ser_files_dir)
 
 	gen_sentences(trees, path, dis_files_dir)
 
-	# statistics
+	# statistics (debugging)
 	num_edus = 0
 	match_edus = 0
 
 	for tree in trees:
-		# print("file {} ".format(tree._fname))
 		sent_ind = 1
 		n_sents = len(tree._sents)
 		fn = build_file_name(tree._fname, path, dis_files_dir, "out.edus")
-		# print("fn = {}".format(fn)) 
 		with open(fn) as fh:
 			for edu in fh:
 				edu = edu.strip()
@@ -78,12 +82,10 @@ def preprocess(path, dis_files_dir, bin_files_dir, ser_files_dir):
 				if edu in tree._sents[sent_ind]:
 					match_edus += 1
 				num_edus += 1
-				# print("edu = {}".format(edu))
-				# print("{} {}".format(sent_ind, tree._sents[sent_ind]))
-			assert(sent_ind < n_sents)
+			# assert(sent_ind < n_sents)
 
-	print("num match between edu and a sentence {} , num edus {} , {}%".\
-		format(match_edus, num_edus, match_edus / num_edus * 100.0))
+	# print("num match between edu and a sentence {} , num edus {} , {}%".\
+	# format(match_edus, num_edus, match_edus / num_edus * 100.0))
 
 	return [trees, max_edus]
 
@@ -93,6 +95,9 @@ def binarize_files(base_path, dis_files_dir, bin_files_dir):
 	path = base_path
 	path += "\\"
 	path += dis_files_dir
+
+	assert os.path.isdir(path), \
+		"Path to dataset does not exist: " + dis_files_dir
 
 	path += "\\*.dis"
 	for fn in glob.glob(path):
@@ -112,17 +117,15 @@ def binarize_file(infn, bin_files_dir):
 
 	binarize_tree(root)
 
-	outfn = infn.split("\\")[0]
-	outfn += "\\"
-	outfn += bin_files_dir
-	outfn += "\\"
-	outfn += extract_base_name_file(infn)
-	outfn += ".out.dis"
-	with open(outfn, "w") as ofh:
-		print_dis_file(ofh, root, 0)
-
-	# res = filecmp.cmp(infn, outfn)
-	# print("compare files {} {} same = {}".format(infn, outfn, res))
+	if bin_files_dir != '':
+		outfn = infn.split("\\")[0]
+		outfn += "\\"
+		outfn += bin_files_dir
+		outfn += "\\"
+		outfn += extract_base_name_file(infn)
+		outfn += ".out.dis"
+		with open(outfn, "w") as ofh:
+			print_dis_file(ofh, root, 0)
 
 	tree_info = TreeInfo()
 	tree_info._root = root
@@ -154,6 +157,7 @@ def build_tree(lines, stack):
 		return build_tree_childs_iter(lines, stack)
 
 	# ( Nucleus (span 1 34) (rel2par Topic-Drift)
+	line.replace("\\TT_ERR", '')
 	m = re.match("\( (\w+) \(span (\d+) (\d+)\) \(rel2par ([\w-]+)\)", line)
 	if m:
 		tokens = m.groups()
@@ -223,7 +227,8 @@ def binarize_tree(node):
 	binarize_tree(l)
 	binarize_tree(r)
 
-# print tree in .dis format
+# print tree in .dis format (called after binarization)
+
 def print_dis_file(ofh, node, level):
 	nuc = node._nuclearity
 	rel = node._relation
@@ -257,12 +262,7 @@ def print_spaces(ofh, level):
 # print serial tree files
 
 def print_serial_files(base_path, trees, outdir):
-	remove_dir(base_path, outdir)
-	path = base_path
-	path += "\\"
-	path += outdir
-
-	os.makedirs(path)
+	path = create_dir(base_path, outdir)
 
 	for tree in trees:
 		outfn = path
@@ -289,16 +289,14 @@ def print_serial_file(ofh, node, doMap=True):
 		print_serial_file(ofh, r, doMap)
 
 def gen_sentences(trees, base_path, infiles_dir):
-	sents_dir = "sents"
-
-	if not os.path.isdir(sents_dir):
-   		os.makedirs(sents_dir)
+	if print_sents:
+		if not os.path.isdir(sents_dir):
+   			os.makedirs(sents_dir)
 
 	for tree in trees:
 		fn = tree._fname
 		# print("file = {}".format(tree._fname))
 		fn = build_file_name(tree._fname, base_path, infiles_dir, "out") 
-		fn_sents = build_file_name(tree._fname, base_path, "sents", "out.sents")
 		with open(fn) as fh:
 			# read the text
 			content = ''
@@ -306,19 +304,20 @@ def gen_sentences(trees, base_path, infiles_dir):
 			for line in lines:
 				if line.strip() != '':
 					content += line
-			# print("content {}".format(content))
-			# break the text into sentences
 			sents = tokenize.sent_tokenize(content)
+			for sent in sents:
+				sent = sent.replace('\n', ' ')
+				sent = sent.replace('  ', ' ')
+				if sent.strip() == "\.":
+					continue
+				tree._sents.append(sent)
+
+		if print_sents:
+			fn_sents = build_file_name(tree._fname, base_path, sents_dir, "out.sents")
 			with open(fn_sents, "w") as ofh:
-				for sent in sents:
-					# print(sent)
-					sent = sent.replace('\n', ' ')
-					sent = sent.replace('  ', ' ')
-					if sent.strip() == "\.":
-						continue
-					ofh.write("{}\n".format(sent))	
-					tree._sents.append(sent)
-	
+				for sent in tree._sents[1:]:
+					fh.write("{}\n".format(sent))
+
 def build_file_name(base_fn, base_path, files_dir, suf):
 	fn = base_path
 	fn += "\\"
@@ -328,6 +327,14 @@ def build_file_name(base_fn, base_path, files_dir, suf):
 	fn += "."
 	fn += suf
 	return fn
+
+def create_dir(base_path, outdir):
+	remove_dir(base_path, outdir)
+	path = base_path
+	path += "\\"
+	path += outdir
+	os.makedirs(path)
+	return path
 
 def remove_dir(base_path, dir):
 	path = base_path
@@ -339,18 +346,3 @@ def remove_dir(base_path, dir):
 		for fn in glob.glob(path_to_files):
 			os.remove(fn)
 		os.rmdir(path)
-
-if __name__ == '__main__':
-	# binarize_file("0600.out.dis")
-	binarize_files(dis_files_dir)
-
-
-
-
-
-
-
-
-			
-
-

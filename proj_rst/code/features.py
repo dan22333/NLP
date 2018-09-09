@@ -10,14 +10,12 @@ import random
 def extract_features(trees, samples, vocab, subset_size, max_edus, tag_to_ind_map):
 	x_vecs = []
 	y_labels = []
-	# text_labels = []
 
 	for i in range(subset_size):
 		sample_ind = random.randint(0, len(samples) - 1)
 		_, vec_feats = add_features_per_sample(samples[sample_ind], vocab, max_edus, tag_to_ind_map)
 		x_vecs.append(vec_feats)
 		y_labels.append(action_to_ind_map[samples[sample_ind]._action])
-		# text_labels.append(samples[sample_ind]._action)
 
 	return [x_vecs, y_labels]
 
@@ -27,13 +25,11 @@ def add_features_per_sample(sample, vocab, max_edus, tag_to_ind_map, use_def_wor
 	split_edus = []
 	tags_edus = []
 	tree = sample._tree
-	# print("state {}".format(sample._state))
 	for i in range(len(sample._state)):
 		edu_ind = sample._state[i]
 		if edu_ind > 0:
 			split_edus.append(split_edu_to_tokens(tree, edu_ind))
 			tags_edus.append(split_edu_to_tags(tree, edu_ind))
-			# print("{}".format(tree._fname))
 		else:
  			split_edus.append([''])
  			tags_edus.append([''])

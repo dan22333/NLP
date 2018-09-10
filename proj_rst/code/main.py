@@ -18,9 +18,6 @@ DEV_TEST_GOLD_DIR = "dev_gold" # dir of the golden serial trees of dev/test data
 PRED_OUTDIR = "pred" # directory of the generated predicted serial trees
 GLOVE_DIR = "glove" # in which the glove embedding vectors file exists (glove.6B.50d.txt)
 
-# in case in TEST data set
-NEW_TAGS = []
-
 def parse_args(argv):
 	model_name = "neural"
 	baseline = False

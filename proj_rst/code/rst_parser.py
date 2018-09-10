@@ -15,6 +15,7 @@ from model import neural_net_predict
 from model import linear_predict
 from relations_inventory import ind_to_action_map
 from preprocess import create_dir
+from preprocess import build_infile_name
 
 class Stack(object):
 	def __init__(self):
@@ -70,20 +71,10 @@ class Transition(object):
 
 def parse_files(base_path, model_name, model, trees, vocab, \
 	max_edus, y_all, tag_to_ind_map, baseline, infiles_dir, gold_files_dir, pred_outdir="pred"):
-
-	path = base_path
-	path += "\\"
-	path += infiles_dir # dev dataset
-	assert os.path.isdir(path), \
-		"Path to dataset does not exist: " + in_files_dir
-
 	path_to_out = create_dir(base_path, pred_outdir)
 
 	for tree in trees: 
-		fn = path
-		fn += "\\"
-		fn += tree._fname
-		fn += ".out.edus"
+		fn = build_infile_name(tree._fname, base_path, infiles_dir, ["out.edus", "edus"])
 		queue = Queue.read_file(fn)
 		stack = Stack()
 		# print("Parsing tree {}".format(tree._fname))

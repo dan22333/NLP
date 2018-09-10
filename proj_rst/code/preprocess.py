@@ -69,8 +69,9 @@ def preprocess(path, dis_files_dir, ser_files_dir='', bin_files_dir=''):
 	for tree in trees:
 		sent_ind = 1
 		n_sents = len(tree._sents)
-		fn = build_file_name(tree._fname, path, dis_files_dir, "out.edus")
+		fn = build_infile_name(tree._fname, path, dis_files_dir, ["out.edus", "edus"])
 		with open(fn) as fh:
+			print("file = {}".format(fn))
 			for edu in fh:
 				edu = edu.strip()
 				edu_tokenized = tokenize.word_tokenize(edu)
@@ -137,7 +138,7 @@ def extract_base_name_file(fn):
 	base_name = base_name.split('.')[0]
 	return base_name
 
-# lines are the content of "out.dis" file
+# lines are the content of .dis" file
 
 def build_tree(lines, stack):
 	line = lines.pop(-1)
@@ -296,8 +297,9 @@ def gen_sentences(trees, base_path, infiles_dir):
 	for tree in trees:
 		fn = tree._fname
 		# print("file = {}".format(tree._fname))
-		fn = build_file_name(tree._fname, base_path, infiles_dir, "out") 
+		fn = build_infile_name(tree._fname, base_path, infiles_dir, ["out", ""]) 
 		with open(fn) as fh:
+			print("file = {}".format(fn))
 			# read the text
 			content = ''
 			lines = fh.readlines()
@@ -318,14 +320,25 @@ def gen_sentences(trees, base_path, infiles_dir):
 				for sent in tree._sents[1:]:
 					fh.write("{}\n".format(sent))
 
+def build_infile_name(fname, base_path, dis_files_dir, suffs):
+	for suf in suffs:
+		fn = build_file_name(fname, base_path, dis_files_dir, suf)
+		if os.path.exists(fn):
+			return fn
+	assert False, "File input does not exist: " +  \
+		"\\".join([base_path, dis_files_dir, fname]) + \
+		" with possible suffices " + "|".join(suffs)
+	return None
+
 def build_file_name(base_fn, base_path, files_dir, suf):
 	fn = base_path
 	fn += "\\"
 	fn += files_dir
 	fn += "\\"
 	fn += base_fn
-	fn += "."
-	fn += suf
+	if suf != '':
+		fn += "."
+		fn += suf
 	return fn
 
 def create_dir(base_path, outdir):
@@ -346,3 +359,7 @@ def remove_dir(base_path, dir):
 		for fn in glob.glob(path_to_files):
 			os.remove(fn)
 		os.rmdir(path)
+
+
+if __name__ == '__main__':
+	fn = build_infile_name('lala', '.', 'kakak', ['o','p'])

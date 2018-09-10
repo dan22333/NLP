@@ -77,7 +77,6 @@ def parse_files(base_path, model_name, model, trees, vocab, \
 		fn = build_infile_name(tree._fname, base_path, infiles_dir, ["out.edus", "edus"])
 		queue = Queue.read_file(fn)
 		stack = Stack()
-		# print("Parsing tree {}".format(tree._fname))
 		root = parse_file(queue, stack, model_name, model, tree, \
 			vocab, max_edus, y_all, tag_to_ind_map, baseline)
 		predfn = path_to_out

@@ -4,6 +4,7 @@ from vocabulary import split_edu_to_tags
 from vocabulary import split_edu_to_tokens
 from vocabulary import vocab_get
 from vocabulary import DEFAULT_TOKEN # empty string
+from vocabulary import get_tag_ind
 
 import random
 
@@ -19,7 +20,7 @@ def extract_features(trees, samples, vocab, subset_size, max_edus, tag_to_ind_ma
 
 	return [x_vecs, y_labels]
 
-def add_features_per_sample(sample, vocab, max_edus, tag_to_ind_map, use_def_word=False):
+def add_features_per_sample(sample, vocab, max_edus, tag_to_ind_map, use_def=False):
 	features = {}
 	feat_names = []
 	split_edus = []
@@ -56,7 +57,7 @@ def add_features_per_sample(sample, vocab, max_edus, tag_to_ind_map, use_def_wor
 
 	add_edu_features(features, tree, sample._state, split_edus, max_edus)
 
-	vecs = gen_vectorized_features(features, vocab, tag_to_ind_map, use_def_word)
+	vecs = gen_vectorized_features(features, vocab, tag_to_ind_map, use_def)
 	return features, vecs
 
 def add_word_features(features, split_edus, feat_names, word_loc):
@@ -109,16 +110,16 @@ def add_edu_features(features, tree, edus_ind, split_edus, max_edus):
 
 	features['SAME-SENT-STACK1-QUEUE1'] = 1 if same_sent else 0
 
-def gen_vectorized_features(features, vocab, tag_to_ind_map, use_def_word):
+def gen_vectorized_features(features, vocab, tag_to_ind_map, use_def):
 	vecs = []
 	n_tags = len(tag_to_ind_map) - 1
 	for key, val in features.items():
 		# print("key {} val {}".format(key, val))
 		if 'WORD' in key:
-			word_ind = vocab_get(vocab, val, use_def_word, DEFAULT_TOKEN)
+			word_ind = vocab_get(vocab, val, use_def)
 			vecs += [elem for elem in vocab._wordVectors[word_ind]]
 		elif 'TAG' in key:
-			vecs += [tag_to_ind_map[val] / n_tags]
+			vecs += [get_tag_ind(tag_to_ind_map, val, use_def) / n_tags]
 		else:
 			vecs += [val]
 		# print(len(vecs))

@@ -71,7 +71,6 @@ def preprocess(path, dis_files_dir, ser_files_dir='', bin_files_dir=''):
 		n_sents = len(tree._sents)
 		fn = build_infile_name(tree._fname, path, dis_files_dir, ["out.edus", "edus"])
 		with open(fn) as fh:
-			print("file = {}".format(fn))
 			for edu in fh:
 				edu = edu.strip()
 				edu_tokenized = tokenize.word_tokenize(edu)
@@ -299,7 +298,6 @@ def gen_sentences(trees, base_path, infiles_dir):
 		# print("file = {}".format(tree._fname))
 		fn = build_infile_name(tree._fname, base_path, infiles_dir, ["out", ""]) 
 		with open(fn) as fh:
-			print("file = {}".format(fn))
 			# read the text
 			content = ''
 			lines = fh.readlines()

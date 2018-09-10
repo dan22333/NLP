@@ -27,7 +27,7 @@ def gen_vocabulary(trees, base_path, files_dir="TRAINING", glove_dir="glove", pr
 		for edu in tree._EDUS_table:
 			edu = nltk.word_tokenize(edu)
 			for word in edu:
-				if not vocab_get(vocab, word):
+				if not vocab._tokens.get(word.lower()):
 					vocab_set(vocab, word, word_ind)
 					word_ind += 1
 
@@ -78,6 +78,13 @@ def gen_bag_of_words(vocab, EDUS_table, edu_ind):
 		vec[ind] += 1
 	return vec	
 
+def get_tag_ind(tag_to_ind_map, tag, use_def_tag=False):
+	if tag_to_ind_map.get(tag, None) == None:
+		if not use_def_tag:
+			assert False, "Could not find tag: " + tag
+		return tag_to_ind_map[''] # empty string is treated as the default tag
+	return tag_to_ind_map[tag]
+
 def build_tags_dict(trees):
 	tag_to_ind_map = {'': 0}
 	tag_ind = 1
@@ -96,11 +103,14 @@ def build_tags_dict(trees):
 	return tag_to_ind_map, ind_to_tag_map
 
 def vocab_get(vocab, word, use_def_word=False, def_word=DEFAULT_TOKEN):
-	val = vocab._tokens.get(word.lower())
-	if val != None or not use_def_word:
+	val = vocab._tokens.get(word.lower(), None)
+	if val != None:
 		return val
 
-	return vocab._tokens.get(def_word)
+	if use_def_word:
+		return vocab._tokens.get(def_word)
+
+	assert False, "word not in vocabulary: " + word.lower()
 
 def vocab_set(vocab, word, ind):
 	vocab._tokens[word.lower()] = ind

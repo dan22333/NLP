@@ -1,7 +1,8 @@
 
 import numpy as np
+from preprocess import SEP
 
-DEFAULT_FILE_PATH = "glove\\glove.6B.50d.txt"
+DEFAULT_FILE_PATH = "glove" + SEP + "glove.6B.50d.txt"
 
 def loadWordVectors(tokens, filepath=DEFAULT_FILE_PATH, dimensions=50):
     """Read pretrained GloVe vectors"""

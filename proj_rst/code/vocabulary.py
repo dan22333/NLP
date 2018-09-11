@@ -4,6 +4,7 @@ from utils import map_to_cluster
 from glove import loadWordVectors
 from relations_inventory import action_to_ind_map
 from preprocess import build_file_name
+from preprocess import SEP
 
 import re
 import glob
@@ -32,9 +33,9 @@ def gen_vocabulary(trees, base_path, files_dir="TRAINING", glove_dir="glove", pr
 					word_ind += 1
 
 	glove_fn = base_path
-	glove_fn += "\\"
+	glove_fn += SEP
 	glove_fn += glove_dir
-	glove_fn += "\\"
+	glove_fn += SEP
 	glove_fn += "glove.6B.50d.txt"
 	assert os.path.exists(glove_fn), "file does not exists: " + glove_fn
 	

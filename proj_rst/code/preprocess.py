@@ -10,6 +10,8 @@ import os
 from utils import map_to_cluster
 from relations_inventory import build_parser_action_to_ind_mapping
 
+SEP = "\\" # path separator in windows
+
 # debugging 
 print_sents = False
 sents_dir = "sents"
@@ -93,13 +95,13 @@ def binarize_files(base_path, dis_files_dir, bin_files_dir):
 	trees = []
 	max_edus = 0
 	path = base_path
-	path += "\\"
+	path += SEP
 	path += dis_files_dir
 
 	assert os.path.isdir(path), \
 		"Path to dataset does not exist: " + dis_files_dir
 
-	path += "\\*.dis"
+	path += SEP + "*.dis"
 	for fn in glob.glob(path):
 		tree = binarize_file(fn, bin_files_dir)
 		trees.append(tree)
@@ -118,10 +120,10 @@ def binarize_file(infn, bin_files_dir):
 	binarize_tree(root)
 
 	if bin_files_dir != '':
-		outfn = infn.split("\\")[0]
-		outfn += "\\"
+		outfn = infn.split(SEP)[0]
+		outfn += SEP
 		outfn += bin_files_dir
-		outfn += "\\"
+		outfn += SEP
 		outfn += extract_base_name_file(infn)
 		outfn += ".out.dis"
 		with open(outfn, "w") as ofh:
@@ -133,7 +135,7 @@ def binarize_file(infn, bin_files_dir):
 	return tree_info
 
 def extract_base_name_file(fn):
-	base_name = fn.split("\\")[-1]
+	base_name = fn.split(SEP)[-1]
 	base_name = base_name.split('.')[0]
 	return base_name
 
@@ -266,7 +268,7 @@ def print_serial_files(base_path, trees, outdir):
 
 	for tree in trees:
 		outfn = path
-		outfn += "\\"
+		outfn += SEP
 		outfn += tree._fname
 		with open(outfn, "w") as ofh:
 			print_serial_file(ofh, tree._root)
@@ -324,15 +326,15 @@ def build_infile_name(fname, base_path, dis_files_dir, suffs):
 		if os.path.exists(fn):
 			return fn
 	assert False, "File input does not exist: " +  \
-		"\\".join([base_path, dis_files_dir, fname]) + \
+		SEP.join([base_path, dis_files_dir, fname]) + \
 		" with possible suffices " + "|".join(suffs)
 	return None
 
 def build_file_name(base_fn, base_path, files_dir, suf):
 	fn = base_path
-	fn += "\\"
+	fn += SEP
 	fn += files_dir
-	fn += "\\"
+	fn += SEP
 	fn += base_fn
 	if suf != '':
 		fn += "."
@@ -342,22 +344,19 @@ def build_file_name(base_fn, base_path, files_dir, suf):
 def create_dir(base_path, outdir):
 	remove_dir(base_path, outdir)
 	path = base_path
-	path += "\\"
+	path += SEP
 	path += outdir
 	os.makedirs(path)
 	return path
 
 def remove_dir(base_path, dir):
 	path = base_path
-	path += "\\"
+	path += SEP
 	path += dir
 	if os.path.isdir(dir):
 		path_to_files = path
-		path_to_files += "\\*"
+		path_to_files += SEP + "*"
 		for fn in glob.glob(path_to_files):
 			os.remove(fn)
 		os.rmdir(path)
 
-
-if __name__ == '__main__':
-	fn = build_infile_name('lala', '.', 'kakak', ['o','p'])

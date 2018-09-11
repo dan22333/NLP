@@ -7,6 +7,7 @@ from rst_parser import parse_files
 from model import mini_batch_linear_model 
 from model import neural_network_model
 from vocabulary import gen_vocabulary
+from preprocess import SEP
 
 import sys
 
@@ -17,6 +18,9 @@ DEV_TEST_DIR = "DEV" # directory of dev/test dataset
 DEV_TEST_GOLD_DIR = "dev_gold" # dir of the golden serial trees of dev/test dataset
 PRED_OUTDIR = "pred" # directory of the generated predicted serial trees
 GLOVE_DIR = "glove" # in which the glove embedding vectors file exists (glove.6B.50d.txt)
+
+# to run on Linux change separator to "//"
+# SEP = "\\"
 
 def parse_args(argv):
 	model_name = "neural"

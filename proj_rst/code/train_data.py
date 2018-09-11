@@ -5,6 +5,7 @@ from glove import loadWordVectors
 from relations_inventory import action_to_ind_map
 from vocabulary import gen_vocabulary
 from preprocess import build_file_name
+from preprocess import SEP
 
 import glob
 import copy
@@ -37,7 +38,7 @@ def gen_train_data(trees, path, print_data=False):
 
 		if print_data:
 			outfn = path
-			outfn += "\\train_data\\"
+			outfn += SEP + "train_data" + SEP
 			outfn += tree._fname
 			with open(outfn, "w") as ofh:
 				for sample in tree_samples:

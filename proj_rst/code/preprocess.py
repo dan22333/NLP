@@ -9,9 +9,9 @@ import os
 
 from utils import map_to_cluster
 from relations_inventory import build_parser_action_to_ind_mapping
+# from main import SEP
 
-SEP = "\\" # path separator in windows
-
+SEP = "/"
 # debugging 
 print_sents = False
 sents_dir = "sents"
@@ -103,6 +103,7 @@ def binarize_files(base_path, dis_files_dir, bin_files_dir):
 
 	path += SEP + "*.dis"
 	for fn in glob.glob(path):
+		check_path_separator(fn, dis_files_dir)
 		tree = binarize_file(fn, bin_files_dir)
 		trees.append(tree)
 		if tree._root._span[1] > max_edus:
@@ -297,7 +298,6 @@ def gen_sentences(trees, base_path, infiles_dir):
 
 	for tree in trees:
 		fn = tree._fname
-		# print("file = {}".format(tree._fname))
 		fn = build_infile_name(tree._fname, base_path, infiles_dir, ["out", ""]) 
 		with open(fn) as fh:
 			# read the text
@@ -360,3 +360,12 @@ def remove_dir(base_path, dir):
 			os.remove(fn)
 		os.rmdir(path)
 
+def check_path_separator(fn, last_dir_name):
+	split_fn = fn.split(SEP)
+	if not last_dir_name in split_fn:
+		assert False, "Bad path separator was set: \"" + SEP + \
+		"\" Call set_path_sep to change separator"
+
+def set_path_sep(path_sep):
+	global SEP
+	SEP = path_sep

@@ -16,6 +16,7 @@ from model import linear_predict
 from relations_inventory import ind_to_action_map
 from preprocess import create_dir
 from preprocess import build_infile_name
+from preprocess import SEP
 
 class Stack(object):
 	def __init__(self):
@@ -80,7 +81,7 @@ def parse_files(base_path, model_name, model, trees, vocab, \
 		root = parse_file(queue, stack, model_name, model, tree, \
 			vocab, max_edus, y_all, tag_to_ind_map, baseline)
 		predfn = path_to_out
-		predfn += "\\"
+		predfn += SEP
 		predfn += tree._fname
 		with open(predfn, "w") as ofh:
 			print_serial_file(ofh, root, False)

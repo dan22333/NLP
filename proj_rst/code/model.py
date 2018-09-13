@@ -28,7 +28,7 @@ class Network(nn.Module):
         return F.relu(self.fc2(x))
  
 def neural_network_model(trees, samples, vocab, max_edus, tag_to_ind_map, \
-	iterations=2, subset_size=5000):
+	iterations=100, subset_size=5000):
 
 	num_classes = len(ind_to_action_map)
 

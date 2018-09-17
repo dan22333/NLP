@@ -8,12 +8,13 @@ from model import mini_batch_linear_model
 from model import neural_network_model
 from vocabulary import gen_vocabulary
 from preprocess import set_path_sep
+from preprocess import print_trees_stats
 
 import sys
 
 # Directories variables
 WORK_DIR = "." # current dir 
-TRAINING_DIR = "TRAINING" # directory of the training dataset
+TRAINING_DIR = "TRAIN_SUBSET" # directory of the training dataset
 DEV_TEST_DIR = "DEV" # directory of dev/test dataset
 DEV_TEST_GOLD_DIR = "dev_gold" # dir of the golden serial trees of dev/test dataset
 PRED_OUTDIR = "pred" # directory of the generated predicted serial trees
@@ -25,9 +26,10 @@ PATH_SEP = "\\"
 def parse_args(argv):
 	model_name = "neural"
 	baseline = False
+	print_stats = False
 
 	if len(argv) < 2:
-		return [model_name, baseline]
+		return [model_name, baseline, print_stats]
 
 	cmd = "-m <linear|neural> -baseline"
 
@@ -42,11 +44,13 @@ def parse_args(argv):
 				i += 1
 			elif argv[i] == "-baseline":
 				baseline = True
+			elif argv[i] == "-stats":
+				print_stats = True
 			else:
 				assert False, "bad command line. Correct cmd: " + cmd
 			i += 1
 
-	return [model_name, baseline]
+	return [model_name, baseline, print_stats]
 
 def train_model(model_name, trees, samples, y_all, vocab, max_edus, tag_to_ind_map):
 	if model_name == "neural":
@@ -59,9 +63,13 @@ def train_model(model_name, trees, samples, y_all, vocab, max_edus, tag_to_ind_m
 	
 if __name__ == '__main__':
 	set_path_sep(PATH_SEP)
-	[model_name, baseline] = parse_args(sys.argv)
+	[model_name, baseline, print_stats] = parse_args(sys.argv)
+
 	print("preprocessing")
 	[trees, max_edus] = preprocess(WORK_DIR, TRAINING_DIR)
+	if print_stats:
+		print_trees_stats(trees)
+
 	[vocab, tag_to_ind_map] = gen_vocabulary(trees, WORK_DIR, TRAINING_DIR, GLOVE_DIR)
 
 	model = '' # model data structure

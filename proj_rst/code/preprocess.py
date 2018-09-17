@@ -5,6 +5,7 @@ import glob
 import nltk
 from nltk import tokenize
 from nltk import pos_tag
+from collections import defaultdict
 import os
 
 from utils import map_to_cluster
@@ -12,6 +13,7 @@ from relations_inventory import build_parser_action_to_ind_mapping
 # from main import SEP
 
 SEP = "/"
+
 # debugging 
 print_sents = False
 sents_dir = "sents"
@@ -291,6 +293,33 @@ def print_serial_file(ofh, node, doMap=True):
 		print_serial_file(ofh, l, doMap)
 		print_serial_file(ofh, r, doMap)
 
+def print_trees_stats(trees):
+	rel_freq = defaultdict(int)
+
+	for tree in trees:
+		gen_tree_stats(tree._root, rel_freq)
+
+	total = 0
+	for _, v in rel_freq.items():
+		total += v
+
+	for k, v in rel_freq.items():
+		rel_freq[k] = v / total
+
+	print("relations frquencies: {}", rel_freq)
+
+def gen_tree_stats(node, rel_freq):
+	if node._type != "Root":
+		nuc = node._nuclearity
+		rel = map_to_cluster(node._relation)
+		rel_freq[rel] += 1
+
+	if node._type != "leaf":
+		l = node._childs[0]
+		r = node._childs[1]
+		gen_tree_stats(l, rel_freq)
+		gen_tree_stats(r, rel_freq)
+
 def gen_sentences(trees, base_path, infiles_dir):
 	if print_sents:
 		if not os.path.isdir(sents_dir):
@@ -369,3 +398,7 @@ def check_path_separator(fn, last_dir_name):
 def set_path_sep(path_sep):
 	global SEP
 	SEP = path_sep
+
+def set_print_stat(flag=True):
+	global PRINT_STAT
+	PRINT_STAT = flag

@@ -14,7 +14,7 @@ import sys
 
 # Directories variables
 WORK_DIR = "." # current dir 
-TRAINING_DIR = "TRAIN_SUBSET" # directory of the training dataset
+TRAINING_DIR = "TRAINING" # directory of the training dataset
 DEV_TEST_DIR = "DEV" # directory of dev/test dataset
 DEV_TEST_GOLD_DIR = "dev_gold" # dir of the golden serial trees of dev/test dataset
 PRED_OUTDIR = "pred" # directory of the generated predicted serial trees
@@ -31,7 +31,7 @@ def parse_args(argv):
 	if len(argv) < 2:
 		return [model_name, baseline, print_stats]
 
-	cmd = "-m <linear|neural> -baseline"
+	cmd = "-m <linear|neural> -baseline -stats"
 
 	if len(argv) >= 2:
 		i = 1

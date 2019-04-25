@@ -15,7 +15,7 @@ from relations_inventory import build_parser_action_to_ind_mapping
 SEP = "/"
 
 # debugging 
-print_sents = False
+print_sents = True
 sents_dir = "sents"
 
 class Node(object):
@@ -80,11 +80,13 @@ def preprocess(path, dis_files_dir, ser_files_dir='', bin_files_dir=''):
 				edu_tokenized = tokenize.word_tokenize(edu)
 				tree._edu_word_tag_table.append(nltk.pos_tag(edu_tokenized))
 				tree._EDUS_table.append(edu)
-				if not edu in tree._sents[sent_ind]:
+				if not is_edu_in_sent(edu, tree._sents[sent_ind]):
 					sent_ind += 1
 				tree._edu_to_sent_ind.append(sent_ind)
-				if edu in tree._sents[sent_ind]:
+				if is_edu_in_sent(edu, tree._sents[sent_ind]):
 					match_edus += 1
+				# else:
+				# print("edu {} sent {}".format(edu, tree._sents[sent_ind]))
 				num_edus += 1
 			# assert(sent_ind < n_sents)
 
@@ -306,7 +308,11 @@ def print_trees_stats(trees):
 	for k, v in rel_freq.items():
 		rel_freq[k] = v / total
 
-	print("relations frquencies: {}", rel_freq)
+	rel_freq_list = [(k,v) for k, v in rel_freq.items()]
+
+	rel_freq_list = sorted(rel_freq_list, key=lambda elem: elem[1])
+	rel_freq_list = rel_freq_list[::-1]
+	print("most frequent relations: {}".format(rel_freq_list[0:5]))
 
 def gen_tree_stats(node, rel_freq):
 	if node._type != "Root":
@@ -329,17 +335,17 @@ def gen_sentences(trees, base_path, infiles_dir):
 		fn = tree._fname
 		fn = build_infile_name(tree._fname, base_path, infiles_dir, ["out", ""]) 
 		with open(fn) as fh:
-			# read the text
 			content = ''
 			lines = fh.readlines()
 			for line in lines:
-				if line.strip() != '':
-					content += line
+				line = sent_transform(line)
+				content += line 
+			content = content.replace(' \n', ' ')
+			content = content.replace('\n', ' ')
+			content = content.replace('  ', ' ')
 			sents = tokenize.sent_tokenize(content)
 			for sent in sents:
-				sent = sent.replace('\n', ' ')
-				sent = sent.replace('  ', ' ')
-				if sent.strip() == "\.":
+				if sent.strip() == '':
 					continue
 				tree._sents.append(sent)
 
@@ -347,7 +353,22 @@ def gen_sentences(trees, base_path, infiles_dir):
 			fn_sents = build_file_name(tree._fname, base_path, sents_dir, "out.sents")
 			with open(fn_sents, "w") as ofh:
 				for sent in tree._sents[1:]:
-					fh.write("{}\n".format(sent))
+					ofh.write("{}\n".format(sent))
+
+def is_edu_in_sent(edu, sent):
+	edu1 = sent_transform(edu)
+	return edu1 in sent
+
+def sent_transform(str):
+	str1 = str.replace(' . . .', '')
+	str1 = str1.replace('Mr.', 'Mr')
+	str1 = str1.replace('No.', 'No')
+	# 'and. . . some'
+	str1 = re.sub('([^.]*)\. \. \. ([^.]+)', r'\1 \2', str1)
+	str1 = re.sub('([a-zA-Z])\.([a-zA-Z])\.([a-zA-Z])\.', r'\1\2\3', str1)
+	str1 = re.sub('([a-zA-Z])\.([a-zA-Z])\.', r'\1\2', str1)
+	str1 = re.sub('([A-Z][a-z]+)\.', r'\1', str1)
+	return str1
 
 def build_infile_name(fname, base_path, dis_files_dir, suffs):
 	for suf in suffs:

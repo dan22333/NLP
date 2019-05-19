@@ -57,16 +57,20 @@ def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
     assignment!
     """
     ### YOUR CODE HERE
+    # V * d * d * 1
+    # predicted = V_c 
     w = np.dot(outputVectors, predicted)
-    prob = softmax(w) # y_pred (V size)
+    # prob = y_pred = U_targ * Vc / sigma exp Ux * Vc for each output vector 
+    prob = softmax(w) # V dim
 
     #  Cost:
-    cost = -np.log(prob[target])
+    cost = -np.log(prob[target]) # CE(y, y_c) = -Sigma y_i * log(y_pred_i)
 
-    prob[target] -= 1.0
+    prob[target] -= 1.0 # U_targ * (y_pred[targ] - 1)
 
-    grad = np.outer(prob,predicted) # V * d
-    gradPred = np.dot(outputVectors.T, prob)
+    grad = np.dot(prob,predicted.T) # V * 1 * 1 * d : V * d
+    # -U_targ + sigma Ux * y_pred[x]
+    gradPred = np.dot(outputVectors.T, prob) # d * V * V * 1
     ### END YOUR CODE
     
     return cost, gradPred, grad
@@ -107,19 +111,18 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset,
     gradPred = np.zeros(predicted.shape) # d size
     cost = 0
     # sigmoid(Uo dot Vc)
-    sig_outer= sigmoid(np.dot(outputVectors[target], predicted))
+    sig_outer = sigmoid(np.dot(outputVectors[target], predicted))
 
     cost -= np.log(sig_outer)
-    grad[target] += predicted * (sig_outer - 1.0)
-    gradPred += outputVectors[target] * (sig_outer - 1.0)
+    grad[target] = predicted * (sig_outer - 1.0)
+    gradPred = outputVectors[target] * (sig_outer - 1.0)
 
-    for k in xrange(K):
-        sample = indices[k]
+    for sample in indices[1:]:
         # sigmoid(-Uk dot Vc)
-        sig_val = sigmoid(-1.0*np.dot(outputVectors[sample], predicted))
+        sig_val = sigmoid(-1.0 * np.dot(outputVectors[sample], predicted))
         cost -= np.log(sig_val)
-        grad[sample] -= (sig_val-1.0)*predicted 
-        gradPred -= (sig_val - 1.0)*outputVectors[sample] 
+        grad[sample] = (1.0 - sig_val) * predicted 
+        gradPred += (1.0 - sig_val) * outputVectors[sample] 
     ### END YOUR CODE
 
     return cost, gradPred, grad

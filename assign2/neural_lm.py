@@ -31,7 +31,7 @@ def load_vocab_embeddings(path=VOCAB_EMBEDDING_PATH):
 
 def load_data_as_sentences(path, word_to_num):
     """
-    Conv:erts the training data to an array of integer arrays.
+    Converts the training data to an array of integer arrays.
       args: 
         path: string pointing to the training data
         word_to_num: A dictionary from string words to integers
@@ -47,7 +47,7 @@ def convert_to_lm_dataset(S):
     """
     Takes a dataset that is a list of sentences as an array of integer arrays.
     Returns the dataset a bigram prediction problem. For any word, predict the
-    next work. 
+    next word. 
     IMPORTANT: we have two padding tokens at the beginning but since we are 
     training a bigram model, only one will be used.
     """
@@ -107,7 +107,8 @@ def eval_neural_lm(eval_data_path):
     dimensions = [input_dim, hidden_dim, output_dim]
     power = 0
     for i in range(len(in_word_index)):
-        power += np.log2(forward(num_to_word_embedding[in_word_index[i]], out_word_index[i], paramsFinal, dimensions))
+        power += np.log2(forward(num_to_word_embedding[in_word_index[i]], out_word_index[i], \
+            paramsFinal, dimensions))
     power /= len(in_word_index)
     perplexity = np.exp2(-1*power)
     ### END YOUR CODE
